@@ -5,7 +5,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 COPY backend/prisma ./prisma/
 
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY backend/ .
 
@@ -22,7 +22,7 @@ RUN apk add --no-cache dumb-init
 COPY backend/package*.json ./
 COPY backend/prisma ./prisma/
 
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
