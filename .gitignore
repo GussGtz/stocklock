@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+build/
+**/build/
+
+# Environment files - NEVER commit these
+.env
+**/.env
+.env.local
+.env.production
+
+# Prisma
+*.db
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.test-db.js
+**/test-*.js
+**/debug-*.js
+**/setup-and-test.js
+**/check-*.js
+**/fix-*.js
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp files
+tsconfig.tsbuildinfo
+**/*.tsbuildinfo
+
+# Zero-byte junk files (from previous session)
+Build
+Checking
+Cloning
+Docs
+It
+Running
+Setting
+Uploaded
+Uploading
+Using
+"stocklock-backend@1.0.0"
