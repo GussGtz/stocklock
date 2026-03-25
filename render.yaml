@@ -2,10 +2,7 @@ services:
   # ── Backend (NestJS Web Service) ──────────────────────────────────────────
   - type: web
     name: stocklock-backend
-    runtime: node
-    rootDir: backend
-    buildCommand: npm ci && npx prisma generate && npx tsc
-    startCommand: node dist/src/main.js
+    runtime: docker
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
