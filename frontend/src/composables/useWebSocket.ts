@@ -15,7 +15,8 @@ export function useWebSocket() {
     const auth = useAuthStore()
     if (!auth.token || socket?.connected) return
 
-    socket = io('/stock', {
+    const wsBase = (import.meta.env.VITE_WS_URL as string) || ''
+    socket = io(`${wsBase}/stock`, {
       auth: { token: auth.token },
       transports: ['websocket'],
       reconnection: true,

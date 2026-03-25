@@ -1,0 +1,39 @@
+services:
+  # ── Backend (NestJS) ──────────────────────────────────────────────────────
+  - type: web
+    name: stocklock-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npx tsc
+    startCommand: node dist/src/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false        # set manually in Render dashboard
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false        # set after frontend is deployed
+    healthCheckPath: /api/v1/health
+
+  # ── Frontend (Vue 3 / Vite static site) ──────────────────────────────────
+  - type: web
+    name: stocklock-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false        # set to https://stocklock-backend.onrender.com/api/v1
+      - key: VITE_WS_URL
+        sync: false        # set to https://stocklock-backend.onrender.com
