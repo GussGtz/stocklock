@@ -137,20 +137,18 @@ async function fetchMovements() {
     const res = await inventoryApi.movements({
       page: pagination.page,
       limit: pagination.limit,
-      search: filters.search,
-      type: filters.type,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
-      sortKey: sortState.key,
-      sortDir: sortState.dir,
+      type: filters.type || undefined,
+      from: filters.dateFrom || undefined,
+      to: filters.dateTo || undefined,
     })
     const rawMov = res.data.data || res.data.items || (Array.isArray(res.data) ? res.data : [])
+    const exitTypes = ['EXIT', 'PRODUCTION_OUT', 'TRANSFER']
     movements.value = rawMov.map(m => ({
       ...m,
       date: m.createdAt,
       productName: m.product?.name ?? '—',
       warehouseName: m.warehouse?.name ?? '—',
-      qty: m.quantity,
+      qty: exitTypes.includes(m.type) ? -Math.abs(Number(m.quantity)) : Math.abs(Number(m.quantity)),
       cost: m.unitCost,
       userName: m.user ? m.user.firstName + ' ' + m.user.lastName : '—',
     }))

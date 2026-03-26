@@ -158,13 +158,24 @@ async function fetchKardex() {
   loading.value = true
   try {
     const res = await inventoryApi.kardex(route.params.productId, {
-      page: pagination.page,
-      limit: pagination.limit,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
+      from: filters.dateFrom || undefined,
+      to: filters.dateTo || undefined,
     })
-    kardex.value = res.data.data || res.data.items || (Array.isArray(res.data) ? res.data : [])
-    if ((res.data.meta?.total ?? res.data.total) !== undefined) pagination.total = res.data.meta?.total ?? res.data.total
+    // Backend returns { product, entries } — map fields to column keys
+    const rawEntries = res.data.entries || res.data.data || res.data.items || (Array.isArray(res.data) ? res.data : [])
+    kardex.value = rawEntries.map(e => ({
+      ...e,
+      entry: e.entryQty,
+      exit: e.exitQty,
+      adjust: e.adjustQty,
+    }))
+    pagination.total = rawEntries.length
+    // Override product from kardex response if available
+    if (res.data.product && !product.value) product.value = {
+      ...res.data.product,
+      stock: res.data.product.currentStock ?? res.data.product.stock,
+      totalValue: res.data.product.totalValue ?? 0,
+    }
   } catch (err) {
     toast.error('Error al cargar kardex')
   } finally {
