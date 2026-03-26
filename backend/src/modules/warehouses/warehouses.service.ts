@@ -18,7 +18,7 @@ export class WarehousesService {
         _count: { select: { inventoryItems: true } },
         inventoryItems: {
           include: {
-            product: { select: { unitCost: true } },
+            product: { select: { costPrice: true } },
           },
         },
       },
@@ -27,7 +27,7 @@ export class WarehousesService {
 
     return warehouses.map((wh) => {
       const totalValue = wh.inventoryItems.reduce((sum, item) => {
-        return sum + Number(item.quantity) * Number(item.product?.unitCost ?? 0);
+        return sum + Number(item.quantity) * Number(item.product?.costPrice ?? 0);
       }, 0);
       const { inventoryItems, ...rest } = wh;
       return {
