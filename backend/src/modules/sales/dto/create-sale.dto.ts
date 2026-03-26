@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsNumber,
   IsPositive,
-  IsDateString,
   IsArray,
   ValidateNested,
   Min,
@@ -47,8 +46,8 @@ export class CreateSaleDto {
   customerId: string;
 
   @IsOptional()
-  @IsDateString()
-  deliveryDate?: Date;
+  @IsString()
+  deliveryDate?: string;
 
   @IsOptional()
   @IsString()

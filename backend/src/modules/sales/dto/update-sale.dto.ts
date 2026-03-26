@@ -1,10 +1,10 @@
-import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsEnum } from 'class-validator';
 import { SaleStatus } from '@prisma/client';
 
 export class UpdateSaleDto {
   @IsOptional()
-  @IsDateString()
-  deliveryDate?: Date;
+  @IsString()
+  deliveryDate?: string;
 
   @IsOptional()
   @IsString()
