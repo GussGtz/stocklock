@@ -26,6 +26,7 @@ import { SectorsModule } from './modules/sectors/sectors.module';
 import { SeriesModule } from './modules/series/series.module';
 import { CfdiModule } from './modules/cfdi/cfdi.module';
 import { HealthModule } from './modules/health/health.module';
+import { SeedModule } from './modules/seed/seed.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { HealthModule } from './modules/health/health.module';
     SeriesModule,
     CfdiModule,
     HealthModule,
+    SeedModule,
   ],
 })
 export class AppModule {}
