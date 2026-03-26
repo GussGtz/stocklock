@@ -17,7 +17,7 @@
     </div>
 
     <!-- KPI Cards — 6 cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <StatCard v-for="stat in stats" :key="stat.label" v-bind="stat" :loading="loading" />
     </div>
 
