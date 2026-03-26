@@ -143,7 +143,7 @@ export class SalesService {
         folio,
         customerId: dto.customerId,
         userId,
-        deliveryDate: dto.deliveryDate,
+        deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
         notes: dto.notes,
         currency: dto.currency ?? 'MXN',
         exchangeRate: dto.exchangeRate ?? 1,
@@ -193,7 +193,10 @@ export class SalesService {
 
     return this.prisma.saleOrder.update({
       where: { id },
-      data: dto,
+      data: {
+        ...dto,
+        deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate) : undefined,
+      },
     });
   }
 
