@@ -508,7 +508,7 @@ async function submitCreate() {
   try {
     const payload = {
       customerId: createForm.customerId,
-      deliveryDate: createForm.deliveryDate || undefined,
+      deliveryDate: createForm.deliveryDate ? createForm.deliveryDate + 'T00:00:00.000Z' : undefined,
       notes: createForm.notes || undefined,
       items: createForm.items.map(i => ({
         productId: i.productId,
