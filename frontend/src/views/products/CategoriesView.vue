@@ -181,7 +181,11 @@ async function fetchCategories() {
   loading.value = true
   try {
     const res = await categoriesApi.list()
-    categories.value = res.data
+    const raw = Array.isArray(res.data) ? res.data : (res.data.data || res.data.items || [])
+    categories.value = raw.map(cat => ({
+      ...cat,
+      productCount: cat._count?.products ?? cat.productCount ?? 0,
+    }))
   } catch (err) {
     toast.error('Error al cargar categorías')
   } finally {

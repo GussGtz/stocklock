@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import * as bcryptjs from 'bcryptjs';
 
 export interface FindAllUsersQuery {
@@ -72,6 +73,29 @@ export class UsersService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async create(dto: CreateUserDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) {
+      throw new BadRequestException(`El email ${dto.email} ya está registrado`);
+    }
+    const hashed = await bcryptjs.hash(dto.password, 10);
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        password: hashed,
+        role: (dto.role as any) ?? 'WAREHOUSE',
+        phone: dto.phone,
+      },
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        role: true, isActive: true, phone: true, createdAt: true,
+      },
+    });
+    return user;
   }
 
   async findOne(id: string) {

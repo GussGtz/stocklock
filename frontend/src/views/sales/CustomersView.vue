@@ -239,12 +239,15 @@ async function submitForm() {
     return
   }
   saving.value = true
+  // Merge state into address since schema has no separate state column
+  const { state, ...rest } = form
+  const payload = { ...rest, address: [form.address, state].filter(Boolean).join(', ') || undefined }
   try {
     if (editingId.value) {
-      await customersApi.update(editingId.value, form)
+      await customersApi.update(editingId.value, payload)
       toast.success('Cliente actualizado')
     } else {
-      await customersApi.create(form)
+      await customersApi.create(payload)
       toast.success('Cliente creado')
     }
     showModal.value = false

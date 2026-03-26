@@ -342,9 +342,9 @@ function onPageChange(p) { pagination.page = p; fetchPurchases() }
 watch(filters, () => { pagination.page = 1; fetchPurchases() })
 
 onMounted(async () => {
-  const [sRes, pRes] = await Promise.all([suppliersApi.list(), productsApi.list()])
-  suppliers.value = sRes.data.items || sRes.data
-  products.value = pRes.data.items || pRes.data
+  const [sRes, pRes] = await Promise.all([suppliersApi.list({ limit: 500 }), productsApi.list({ limit: 500 })])
+  suppliers.value = sRes.data.data || sRes.data.items || (Array.isArray(sRes.data) ? sRes.data : [])
+  products.value = pRes.data.data || pRes.data.items || (Array.isArray(pRes.data) ? pRes.data : [])
   fetchPurchases()
 })
 </script>

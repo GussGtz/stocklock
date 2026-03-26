@@ -314,8 +314,8 @@ function onPageChange(p) { pagination.page = p; fetchOrders() }
 watch(filters, () => { pagination.page = 1; fetchOrders() })
 
 onMounted(async () => {
-  const pRes = await productsApi.list()
-  products.value = pRes.data.items || pRes.data
+  const pRes = await productsApi.list({ limit: 500 })
+  products.value = pRes.data.data || pRes.data.items || (Array.isArray(pRes.data) ? pRes.data : [])
   fetchOrders()
 })
 </script>
