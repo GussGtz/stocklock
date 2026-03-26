@@ -289,7 +289,19 @@ async function submitCreate() {
   }
   saving.value = true
   try {
-    await purchasesApi.create(createForm)
+    const payload = {
+      supplierId: createForm.supplierId,
+      expectedDate: createForm.expectedDate ? createForm.expectedDate + 'T00:00:00.000Z' : undefined,
+      currency: createForm.currency,
+      exchangeRate: createForm.exchangeRate,
+      notes: createForm.notes || undefined,
+      items: createForm.items.map(i => ({
+        productId: i.productId,
+        orderedQty: i.qty,
+        unitCost: i.unitCost,
+      })),
+    }
+    await purchasesApi.create(payload)
     toast.success('Orden de compra creada')
     showCreateModal.value = false
     fetchPurchases()
@@ -306,7 +318,10 @@ async function fetchPurchases() {
     const res = await purchasesApi.list({
       page: pagination.page,
       limit: pagination.limit,
-      ...filters,
+      status: filters.status || undefined,
+      supplierId: filters.supplierId || undefined,
+      from: filters.dateFrom || undefined,
+      to: filters.dateTo || undefined,
     })
     const rawP = res.data.data || res.data.items || (Array.isArray(res.data) ? res.data : [])
     purchases.value = rawP.map(p => ({

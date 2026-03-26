@@ -268,7 +268,19 @@ async function submitCreate() {
   }
   saving.value = true
   try {
-    await productionApi.create(createForm)
+    await productionApi.create({
+      description: createForm.description,
+      startDate: createForm.startDate ? createForm.startDate + 'T00:00:00.000Z' : undefined,
+      inputs: createForm.inputs.filter(i => i.productId).map(i => ({
+        productId: i.productId,
+        plannedQty: i.plannedQty,
+        unitCost: i.unitCost,
+      })),
+      outputs: createForm.outputs.filter(o => o.productId).map(o => ({
+        productId: o.productId,
+        plannedQty: o.plannedQty,
+      })),
+    })
     toast.success('Orden de producción creada')
     showCreateModal.value = false
     fetchOrders()
@@ -282,7 +294,13 @@ async function submitCreate() {
 async function fetchOrders() {
   loading.value = true
   try {
-    const res = await productionApi.list({ page: pagination.page, limit: pagination.limit, ...filters })
+    const res = await productionApi.list({
+      page: pagination.page,
+      limit: pagination.limit,
+      status: filters.status || undefined,
+      from: filters.dateFrom || undefined,
+      to: filters.dateTo || undefined,
+    })
     orders.value = res.data.data || res.data.items || (Array.isArray(res.data) ? res.data : [])
     if ((res.data.meta?.total ?? res.data.total) !== undefined) pagination.total = res.data.meta?.total ?? res.data.total
   } catch (err) {

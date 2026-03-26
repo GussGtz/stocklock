@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsNumber,
   IsPositive,
-  IsDateString,
   IsArray,
   ValidateNested,
   Min,
@@ -41,8 +40,8 @@ export class CreateProductionDto {
   description?: string;
 
   @IsOptional()
-  @IsDateString()
-  startDate?: Date;
+  @IsString()
+  startDate?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

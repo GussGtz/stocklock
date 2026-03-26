@@ -535,8 +535,8 @@ async function fetchSales() {
     const params = { page: pagination.page, limit: pagination.limit }
     if (filters.status) params.status = filters.status
     if (filters.customerId) params.customerId = filters.customerId
-    if (filters.dateFrom) params.dateFrom = filters.dateFrom
-    if (filters.dateTo) params.dateTo = filters.dateTo
+    if (filters.dateFrom) params.from = filters.dateFrom
+    if (filters.dateTo) params.to = filters.dateTo
     const res = await salesApi.list(params)
     const rawS = res.data.data || res.data.items || (Array.isArray(res.data) ? res.data : [])
     sales.value = rawS.map(s => ({

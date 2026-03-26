@@ -185,7 +185,7 @@ async function submitAdjust() {
     await inventoryApi.adjust({
       productId: adjustForm.productId,
       warehouseId: adjustForm.warehouseId,
-      quantity: adjustForm.quantity,
+      newQuantity: adjustForm.quantity,
       reason: adjustForm.reason,
     })
     toast.success('Stock ajustado correctamente')

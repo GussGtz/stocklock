@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsNumber,
   IsPositive,
-  IsDateString,
   IsArray,
   ValidateNested,
   Min,
@@ -34,8 +33,8 @@ export class CreatePurchaseDto {
   supplierId: string;
 
   @IsOptional()
-  @IsDateString()
-  expectedDate?: Date;
+  @IsString()
+  expectedDate?: string;
 
   @IsOptional()
   @IsString()
