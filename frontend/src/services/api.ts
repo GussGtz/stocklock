@@ -141,6 +141,7 @@ export const alertsApi = {
 export const usersApi = {
   list: (params?: any) => api.get('/users', { params }),
   get: (id: string) => api.get(`/users/${id}`),
+  create: (data: any) => api.post('/users', data),
   update: (id: string, data: any) => api.patch(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
   changePassword: (id: string, data: any) => api.post(`/users/${id}/change-password`, data),

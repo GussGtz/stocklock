@@ -236,9 +236,21 @@ async function submitForm() {
     return
   }
   saving.value = true
-  // Merge state into address since schema has no separate state column
-  const { state, ...rest } = form
-  const payload = { ...rest, address: [form.address, state].filter(Boolean).join(', ') || undefined }
+  // Build clean payload — strip empty strings (fail @IsEmail/@IsString validators) and invalid 0-rating
+  const addrParts = [form.address, form.state].filter(Boolean)
+  const payload = {
+    code: form.code,
+    name: form.name,
+    ...(form.rfc        && { rfc: form.rfc }),
+    ...(form.contactName && { contactName: form.contactName }),
+    ...(form.email      && { email: form.email }),
+    ...(form.phone      && { phone: form.phone }),
+    ...(form.city       && { city: form.city }),
+    ...(addrParts.length && { address: addrParts.join(', ') }),
+    ...(form.paymentTerms != null && { paymentTerms: form.paymentTerms }),
+    ...(form.rating >= 1  && { rating: form.rating }),
+    ...(form.notes      && { notes: form.notes }),
+  }
   try {
     if (editingId.value) {
       await suppliersApi.update(editingId.value, payload)

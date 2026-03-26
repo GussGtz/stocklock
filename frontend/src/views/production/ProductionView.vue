@@ -45,7 +45,7 @@
         <template #cell-startDate="{ value }">{{ formatDate(value) }}</template>
         <template #cell-endDate="{ value }">{{ formatDate(value) }}</template>
         <template #cell-scrapRate="{ value }">
-          <span v-if="value !== null && value !== undefined">{{ value.toFixed(1) }}%</span>
+          <span v-if="value !== null && value !== undefined">{{ Number(value).toFixed(1) }}%</span>
           <span v-else class="text-gray-300 dark:text-gray-600">—</span>
         </template>
         <template #cell-actions="{ row }">

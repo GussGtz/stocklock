@@ -110,7 +110,7 @@
         </div>
         <div class="card text-center">
           <p class="text-sm text-gray-500 dark:text-gray-400">Top Proveedor</p>
-          <p class="text-lg font-bold text-gray-900 dark:text-white">{{ purchSummary.topSupplier || '—' }}</p>
+          <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ purchSummary.topSupplier || '—' }}</p>
         </div>
       </div>
 
@@ -177,9 +177,8 @@ const invPagination = reactive({ page: 1, limit: 25, total: 0 })
 const inventoryCols = [
   { key: 'code', label: 'Código' },
   { key: 'name', label: 'Producto' },
-  { key: 'stock', label: 'Stock Actual' },
+  { key: 'currentStock', label: 'Stock Actual' },
   { key: 'totalValue', label: 'Valor Total' },
-  { key: 'lastMovement', label: 'Último Mov.' },
   { key: 'status', label: 'Estado' },
 ]
 
@@ -210,8 +209,9 @@ const horizontalBarOptions = {
 }
 
 function stockStatus(row) {
-  if (row.stock === 0) return { badge: 'badge-red', label: 'Sin Stock' }
-  if (row.stock < row.minStock) return { badge: 'badge-amber', label: 'Stock Bajo' }
+  const s = row.currentStock ?? row.stock ?? 0
+  if (s === 0) return { badge: 'badge-red', label: 'Sin Stock' }
+  if (s <= (row.minStock ?? 0)) return { badge: 'badge-amber', label: 'Stock Bajo' }
   return { badge: 'badge-green', label: 'Normal' }
 }
 
@@ -253,19 +253,24 @@ async function fetchInventoryReport() {
 async function fetchSalesReport() {
   reportLoading.value = true
   try {
-    const res = await reportsApi.sales(salesFilters)
-    salesSummary.value = res.data.summary || {}
-    const daily = res.data.daily || []
-    salesChartData.value = {
-      labels: daily.map(d => d.date),
-      datasets: [{
-        label: 'Ventas',
-        data: daily.map(d => d.total),
-        backgroundColor: 'rgba(59, 130, 246, 0.6)',
-        borderColor: 'rgb(59, 130, 246)',
-        borderWidth: 1,
-      }],
+    const params = { from: salesFilters.dateFrom || undefined, to: salesFilters.dateTo || undefined }
+    const res = await reportsApi.sales(params)
+    salesSummary.value = {
+      ...res.data.summary,
+      topCustomer: res.data.byCustomer?.[0]?.name ?? '—',
     }
+    // Build daily totals from orders array
+    const dailyMap = {}
+    for (const order of res.data.orders || []) {
+      const day = order.saleDate?.substring(0, 10) ?? order.createdAt?.substring(0, 10)
+      if (day) dailyMap[day] = (dailyMap[day] ?? 0) + Number(order.total)
+    }
+    const days = Object.keys(dailyMap).sort()
+    salesChartData.value = days.length ? {
+      labels: days,
+      datasets: [{ label: 'Ventas', data: days.map(d => dailyMap[d]),
+        backgroundColor: 'rgba(59,130,246,0.6)', borderColor: 'rgb(59,130,246)', borderWidth: 1 }],
+    } : null
   } catch (err) {
     toast.error('Error al cargar reporte de ventas')
   } finally {
@@ -276,19 +281,30 @@ async function fetchSalesReport() {
 async function fetchPurchasesReport() {
   reportLoading.value = true
   try {
-    const res = await reportsApi.purchases(purchFilters)
-    purchSummary.value = res.data.summary || {}
-    const daily = res.data.daily || []
-    purchChartData.value = {
-      labels: daily.map(d => d.date),
+    const params = { from: purchFilters.dateFrom || undefined, to: purchFilters.dateTo || undefined }
+    const res = await reportsApi.purchases(params)
+    purchSummary.value = {
+      ...res.data.summary,
+      totalAmount: res.data.summary?.totalSpend ?? 0,
+      topSupplier: res.data.bySupplier?.[0]?.name ?? '—',
+    }
+    // Build daily totals from orders array
+    const dailyMap = {}
+    for (const order of res.data.orders || []) {
+      const day = order.orderDate?.substring(0, 10) ?? order.createdAt?.substring(0, 10)
+      if (day) dailyMap[day] = (dailyMap[day] ?? 0) + Number(order.total)
+    }
+    const days = Object.keys(dailyMap).sort()
+    purchChartData.value = days.length ? {
+      labels: days,
       datasets: [{
         label: 'Compras',
-        data: daily.map(d => d.total),
+        data: days.map(d => dailyMap[d]),
         backgroundColor: 'rgba(249, 115, 22, 0.6)',
         borderColor: 'rgb(249, 115, 22)',
         borderWidth: 1,
       }],
-    }
+    } : null
   } catch (err) {
     toast.error('Error al cargar reporte de compras')
   } finally {
@@ -301,16 +317,16 @@ async function fetchTopProducts() {
   try {
     const res = await reportsApi.topProducts()
     const items = res.data || []
-    topProductsChartData.value = {
-      labels: items.map(i => i.name),
+    topProductsChartData.value = items.length ? {
+      labels: items.map(i => i.product?.name ?? i.name ?? ''),
       datasets: [{
         label: 'Unidades Vendidas',
-        data: items.map(i => i.totalSold),
+        data: items.map(i => i.totalQuantity ?? i.totalSold ?? 0),
         backgroundColor: 'rgba(16, 185, 129, 0.6)',
         borderColor: 'rgb(16, 185, 129)',
         borderWidth: 1,
       }],
-    }
+    } : null
   } catch (err) {
     toast.error('Error al cargar top productos')
   } finally {

@@ -246,7 +246,15 @@ async function submitCreate() {
   }
   saving.value = true
   try {
-    await usersApi.create(createForm)
+    const payload = {
+      firstName: createForm.firstName,
+      lastName: createForm.lastName,
+      email: createForm.email,
+      password: createForm.password,
+      role: createForm.role,
+      ...(createForm.phone && { phone: createForm.phone }),
+    }
+    await usersApi.create(payload)
     toast.success('Usuario creado')
     showCreateModal.value = false
     fetchUsers()
