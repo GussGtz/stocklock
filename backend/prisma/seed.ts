@@ -24,8 +24,24 @@ async function main() {
       phone: '+52 555 000 0001',
     },
   });
-
   console.log(`Admin user created: ${admin.email}`);
+
+  const demoUsers = [
+    { email: 'gerente@stocklock.com', firstName: 'Carlos', lastName: 'Gerente',   role: Role.MANAGER,   phone: '+52 555 000 0002' },
+    { email: 'almacen@stocklock.com', firstName: 'Luis',   lastName: 'Almacén',   role: Role.WAREHOUSE, phone: '+52 555 000 0003' },
+    { email: 'ventas@stocklock.com',  firstName: 'Ana',    lastName: 'Ventas',    role: Role.SALES,     phone: '+52 555 000 0004' },
+    { email: 'viewer@stocklock.com',  firstName: 'María',  lastName: 'Viewer',    role: Role.VIEWER,    phone: '+52 555 000 0005' },
+  ];
+
+  for (const u of demoUsers) {
+    const pw = await bcryptjs.hash('Demo123456!', 10);
+    const created = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: { ...u, password: pw, isActive: true },
+    });
+    console.log(`Demo user created: ${created.email} (${created.role})`);
+  }
 
   // ─────────────────────────────────────────────
   // DEFAULT WAREHOUSE
@@ -550,9 +566,12 @@ async function main() {
 
   console.log('\nSeed completed successfully!');
   console.log('─────────────────────────────────────');
-  console.log('Login credentials:');
-  console.log('  Email:    admin@stocklock.com');
-  console.log('  Password: Admin123456!');
+  console.log('Demo credentials (password Demo123456! for all except admin):');
+  console.log('  admin@stocklock.com   Admin123456!  (ADMIN)');
+  console.log('  gerente@stocklock.com Demo123456!   (MANAGER)');
+  console.log('  almacen@stocklock.com Demo123456!   (WAREHOUSE)');
+  console.log('  ventas@stocklock.com  Demo123456!   (SALES)');
+  console.log('  viewer@stocklock.com  Demo123456!   (VIEWER)');
   console.log('─────────────────────────────────────');
 }
 

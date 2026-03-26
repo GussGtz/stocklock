@@ -144,26 +144,37 @@
           </form>
 
           <!-- Divider -->
-          <div class="relative my-6">
+          <div class="relative my-5">
             <div class="absolute inset-0 flex items-center">
               <div class="w-full border-t border-gray-200 dark:border-slate-700"></div>
             </div>
             <div class="relative flex justify-center">
-              <span class="px-3 text-xs text-gray-400 bg-white dark:bg-slate-800">Acceso de demostración</span>
+              <span class="px-3 text-xs text-gray-400 bg-white dark:bg-slate-800">Cuentas de demostración</span>
             </div>
           </div>
 
-          <!-- Demo fill button -->
-          <button
-            @click="fillDemo"
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
-                   text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20
-                   hover:bg-primary-100 dark:hover:bg-primary-900/30
-                   border border-primary-200 dark:border-primary-700/50 transition-colors"
-          >
-            <BoltIcon class="w-4 h-4" />
-            Rellenar credenciales de prueba
-          </button>
+          <!-- Demo accounts grid -->
+          <div class="grid grid-cols-1 gap-1.5">
+            <button
+              v-for="demo in demoAccounts"
+              :key="demo.email"
+              @click="fillDemo(demo)"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors border
+                     bg-gray-50 dark:bg-slate-700/40 border-gray-200 dark:border-slate-600/50
+                     hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500"
+            >
+              <div :class="['w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold', demo.color]">
+                {{ demo.initials }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{{ demo.name }}</div>
+                <div class="text-[11px] text-gray-400 truncate">{{ demo.email }}</div>
+              </div>
+              <span :class="['text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', demo.badgeClass]">
+                {{ demo.role }}
+              </span>
+            </button>
+          </div>
         </div>
 
         <!-- Footer note -->
@@ -180,7 +191,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   EyeIcon, EyeSlashIcon, ExclamationCircleIcon,
-  EnvelopeIcon, LockClosedIcon, CheckIcon, BoltIcon,
+  EnvelopeIcon, LockClosedIcon, CheckIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -202,6 +213,14 @@ const heroStats = [
   { value: '< 1s', label: 'Tiempo de respuesta' },
 ]
 
+const demoAccounts = [
+  { name: 'Admin StockLock',  email: 'admin@stocklock.com',   password: 'Admin123456!', role: 'ADMIN',     initials: 'AS', color: 'bg-red-500',    badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  { name: 'Carlos Gerente',   email: 'gerente@stocklock.com', password: 'Demo123456!',  role: 'MANAGER',   initials: 'CG', color: 'bg-blue-500',   badgeClass: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  { name: 'Luis Almacén',     email: 'almacen@stocklock.com', password: 'Demo123456!',  role: 'WAREHOUSE', initials: 'LA', color: 'bg-amber-500',  badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+  { name: 'Ana Ventas',       email: 'ventas@stocklock.com',  password: 'Demo123456!',  role: 'SALES',     initials: 'AV', color: 'bg-green-500',  badgeClass: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  { name: 'María Viewer',     email: 'viewer@stocklock.com',  password: 'Demo123456!',  role: 'VIEWER',    initials: 'MV', color: 'bg-gray-500',   badgeClass: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
+]
+
 async function handleLogin() {
   error.value = ''
   loading.value = true
@@ -216,9 +235,9 @@ async function handleLogin() {
   }
 }
 
-function fillDemo() {
-  form.value.email    = 'admin@stocklock.com'
-  form.value.password = 'Admin123456!'
+function fillDemo(demo: { email: string; password: string }) {
+  form.value.email    = demo.email
+  form.value.password = demo.password
 }
 </script>
 

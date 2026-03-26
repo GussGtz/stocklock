@@ -158,10 +158,11 @@ const initials = computed(() => {
 
 const roleLabel = computed(() => {
   const roles: Record<string, string> = {
-    ADMIN: 'Administrador',
-    MANAGER: 'Gerente',
-    OPERATOR: 'Operador',
-    VIEWER: 'Visualizador',
+    ADMIN:     'Administrador',
+    MANAGER:   'Gerente',
+    WAREHOUSE: 'Almacén',
+    SALES:     'Ventas',
+    VIEWER:    'Visualizador',
   }
   return roles[auth.user?.role ?? ''] ?? auth.user?.role ?? ''
 })
