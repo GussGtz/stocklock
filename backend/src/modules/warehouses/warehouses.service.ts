@@ -12,12 +12,29 @@ export class WarehousesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.warehouse.findMany({
+    const warehouses = await this.prisma.warehouse.findMany({
       where: { isActive: true },
       include: {
         _count: { select: { inventoryItems: true } },
+        inventoryItems: {
+          include: {
+            product: { select: { unitCost: true } },
+          },
+        },
       },
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+    });
+
+    return warehouses.map((wh) => {
+      const totalValue = wh.inventoryItems.reduce((sum, item) => {
+        return sum + Number(item.quantity) * Number(item.product?.unitCost ?? 0);
+      }, 0);
+      const { inventoryItems, ...rest } = wh;
+      return {
+        ...rest,
+        productCount: wh._count.inventoryItems,
+        totalValue,
+      };
     });
   }
 

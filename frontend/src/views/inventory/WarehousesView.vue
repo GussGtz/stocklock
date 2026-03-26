@@ -222,7 +222,11 @@ async function fetchWarehouses() {
   loading.value = true
   try {
     const res = await warehousesApi.list()
-    warehouses.value = res.data
+    warehouses.value = res.data.map(wh => ({
+      ...wh,
+      productCount: wh.productCount ?? wh._count?.inventoryItems ?? 0,
+      totalValue: wh.totalValue ?? 0,
+    }))
   } catch (err) {
     toast.error('Error al cargar almacenes')
   } finally {
