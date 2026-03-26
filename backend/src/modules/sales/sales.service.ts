@@ -143,7 +143,7 @@ export class SalesService {
         folio,
         customerId: dto.customerId,
         userId,
-        deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
+        deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate + 'T00:00:00.000Z') : null,
         notes: dto.notes,
         currency: dto.currency ?? 'MXN',
         exchangeRate: dto.exchangeRate ?? 1,
@@ -195,7 +195,7 @@ export class SalesService {
       where: { id },
       data: {
         ...dto,
-        deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate) : undefined,
+        deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate + 'T00:00:00.000Z') : undefined,
       },
     });
   }
