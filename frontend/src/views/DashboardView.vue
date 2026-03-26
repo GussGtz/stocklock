@@ -7,7 +7,7 @@
           Buenas {{ greeting }}, {{ auth.user?.firstName }} 👋
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ today }} — Aquí está el resumen de tu inventario
+          {{ today }} — Aquí está el resumen de tu operación
         </p>
       </div>
       <button @click="refresh" class="btn-secondary">
@@ -16,23 +16,17 @@
       </button>
     </div>
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <StatCard
-        v-for="stat in stats"
-        :key="stat.label"
-        v-bind="stat"
-        :loading="loading"
-      />
+    <!-- KPI Cards — 6 cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+      <StatCard v-for="stat in stats" :key="stat.label" v-bind="stat" :loading="loading" />
     </div>
 
-    <!-- Charts Row -->
+    <!-- Row 1: Inventario por Categoría + Estado Stock -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <!-- Stock by Category -->
       <div class="card xl:col-span-2">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-semibold text-slate-900 dark:text-white">Inventario por Categoría</h3>
-          <span class="badge badge-blue">{{ today }}</span>
+          <span class="badge badge-blue text-xs">Unidades</span>
         </div>
         <div class="h-64">
           <Bar v-if="!loading && barData" :data="barData" :options="barOptions" />
@@ -40,7 +34,6 @@
         </div>
       </div>
 
-      <!-- Stock Status Donut -->
       <div class="card">
         <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Estado del Stock</h3>
         <div class="h-48 flex items-center justify-center">
@@ -59,16 +52,100 @@
       </div>
     </div>
 
-    <!-- Bottom Row -->
+    <!-- Row 2: Ventas por día + Top Productos -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div class="card xl:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Ventas del Mes por Día</h3>
+          <span class="badge badge-green text-xs">{{ currentMonth }}</span>
+        </div>
+        <div class="h-64">
+          <Line v-if="!loading && lineData" :data="lineData" :options="lineOptions" />
+          <div v-else class="skeleton h-full rounded-lg" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top 5 Productos Vendidos</h3>
+          <span class="badge badge-blue text-xs">Este mes</span>
+        </div>
+        <div class="h-64">
+          <Bar v-if="!loading && topProductsData" :data="topProductsData" :options="horizontalBarOptions" />
+          <div v-else-if="loading" class="skeleton h-full rounded-lg" />
+          <div v-else class="flex flex-col items-center justify-center h-full text-gray-400 text-sm gap-2">
+            <ChartBarIcon class="w-10 h-10 opacity-30" />
+            Sin ventas este mes
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Ventas vs Compras + Órdenes Pendientes -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div class="card xl:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Ventas vs Compras — Últimos 6 Meses</h3>
+          <span class="badge badge-blue text-xs">Comparativa</span>
+        </div>
+        <div class="h-64">
+          <Bar v-if="!loading && salesVsPurchasesData" :data="salesVsPurchasesData" :options="groupedBarOptions" />
+          <div v-else class="skeleton h-full rounded-lg" />
+        </div>
+      </div>
+
+      <!-- Órdenes pendientes -->
+      <div class="card">
+        <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-5">Órdenes Pendientes</h3>
+        <div v-if="loading" class="space-y-4">
+          <div v-for="i in 3" :key="i" class="skeleton h-16 rounded-lg" />
+        </div>
+        <div v-else class="space-y-4">
+          <RouterLink to="/sales" class="flex items-center gap-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <ShoppingCartIcon class="w-5 h-5 text-white" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">Ventas Pendientes</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Draft + Confirmadas</p>
+            </div>
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ dashboardData?.pendingSales ?? 0 }}</span>
+          </RouterLink>
+
+          <RouterLink to="/purchases" class="flex items-center gap-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+              <TruckIcon class="w-5 h-5 text-white" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">Compras Pendientes</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Draft + Enviadas + Confirmadas</p>
+            </div>
+            <span class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ dashboardData?.pendingPurchases ?? 0 }}</span>
+          </RouterLink>
+
+          <RouterLink to="/inventory" class="flex items-center gap-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
+              <ExclamationTriangleIcon class="w-5 h-5 text-white" />
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">Stock Bajo</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Productos bajo mínimo</p>
+            </div>
+            <span class="text-2xl font-bold text-red-600 dark:text-red-400">{{ dashboardData?.lowStockCount ?? 0 }}</span>
+          </RouterLink>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 4: Stock Bajo + Movimientos Recientes -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <!-- Low Stock Alert -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
             Stock Bajo
             <span class="badge badge-red">{{ lowStockItems.length }}</span>
           </h3>
-          <RouterLink to="/inventory" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+          <RouterLink to="/inventory" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors">
             Ver todo →
           </RouterLink>
         </div>
@@ -97,11 +174,10 @@
         </div>
       </div>
 
-      <!-- Recent Movements -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-semibold text-slate-900 dark:text-white">Movimientos Recientes</h3>
-          <RouterLink to="/inventory/movements" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+          <RouterLink to="/inventory/movements" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors">
             Ver todo →
           </RouterLink>
         </div>
@@ -135,28 +211,37 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Bar, Doughnut } from 'vue-chartjs'
+import { Bar, Doughnut, Line } from 'vue-chartjs'
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement,
-  ArcElement, Tooltip, Legend, Title,
+  ArcElement, Tooltip, Legend, Title, LineElement, PointElement, Filler,
 } from 'chart.js'
-import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import {
+  ArrowPathIcon, ExclamationTriangleIcon,
+  ShoppingCartIcon, TruckIcon, ChartBarIcon,
+} from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import { useAuthStore } from '@/stores/auth'
 import { reportsApi, productsApi, inventoryApi } from '@/services/api'
 import StatCard from '@/components/ui/StatCard.vue'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, Title)
+ChartJS.register(
+  CategoryScale, LinearScale, BarElement,
+  ArcElement, Tooltip, Legend, Title,
+  LineElement, PointElement, Filler,
+)
 dayjs.locale('es')
 
 const auth = useAuthStore()
 const loading = ref(true)
 const dashboardData = ref<any>(null)
+const salesReport = ref<any>(null)
 const lowStockItems = ref<any[]>([])
 const recentMovements = ref<any[]>([])
 
 const today = computed(() => dayjs().format('dddd, D [de] MMMM YYYY'))
+const currentMonth = computed(() => dayjs().format('MMMM YYYY'))
 const greeting = computed(() => {
   const h = dayjs().hour()
   if (h < 12) return 'días'
@@ -164,9 +249,10 @@ const greeting = computed(() => {
   return 'noches'
 })
 
+// ── KPI stats (6 cards) ──────────────────────────────────────────────────────
 const stats = computed(() => {
   const d = dashboardData.value
-  if (!d) return Array(4).fill({ label: '', value: '', icon: null, color: '' })
+  if (!d) return Array(6).fill({ label: '', value: '', icon: null, color: '' })
   return [
     {
       label: 'Total Productos',
@@ -177,12 +263,27 @@ const stats = computed(() => {
       iconColor: 'text-primary-600 dark:text-primary-400',
     },
     {
-      label: 'Valor del Inventario',
-      value: formatCurrency(d.totalInventoryValue ?? d.totalValue ?? 0),
-      change: d.valueChange,
+      label: 'Valor Inventario',
+      value: formatCurrency(d.totalInventoryValue ?? 0),
       icon: 'currency',
       iconBg: 'bg-green-50 dark:bg-green-600/20',
       iconColor: 'text-green-600 dark:text-green-400',
+    },
+    {
+      label: 'Ventas del Mes',
+      value: formatCurrency(d.salesThisMonth?.total ?? 0),
+      subtitle: `${d.salesThisMonth?.count ?? 0} órdenes`,
+      icon: 'chart',
+      iconBg: 'bg-blue-50 dark:bg-blue-600/20',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+    },
+    {
+      label: 'Compras del Mes',
+      value: formatCurrency(d.purchasesThisMonth?.total ?? 0),
+      subtitle: `${d.purchasesThisMonth?.count ?? 0} órdenes`,
+      icon: 'truck',
+      iconBg: 'bg-amber-50 dark:bg-amber-600/20',
+      iconColor: 'text-amber-600 dark:text-amber-400',
     },
     {
       label: 'Movimientos Hoy',
@@ -201,6 +302,7 @@ const stats = computed(() => {
   ]
 })
 
+// ── Chart 1: Inventario por Categoría (bar) ──────────────────────────────────
 const barData = computed(() => {
   const d = dashboardData.value
   if (!d?.stockByCategory) return null
@@ -227,6 +329,7 @@ const barOptions = {
   },
 }
 
+// ── Chart 2: Estado del Stock (donut) ────────────────────────────────────────
 const donutData = computed(() => {
   const d = dashboardData.value
   if (!d) return null
@@ -258,14 +361,179 @@ const stockStatus = computed(() => {
   ]
 })
 
+// ── Chart 3: Ventas por día del mes (line) ───────────────────────────────────
+const lineData = computed(() => {
+  const orders = salesReport.value?.orders
+  if (!orders) return null
+
+  const daysInMonth = dayjs().daysInMonth()
+  const labels = Array.from({ length: daysInMonth }, (_, i) =>
+    String(i + 1).padStart(2, '0'),
+  )
+  const totals = new Array(daysInMonth).fill(0)
+
+  for (const order of orders) {
+    const day = dayjs(order.saleDate).date() - 1
+    if (day >= 0 && day < daysInMonth) {
+      totals[day] += Number(order.total)
+    }
+  }
+
+  return {
+    labels,
+    datasets: [{
+      label: 'Ventas ($)',
+      data: totals,
+      borderColor: 'rgba(34, 197, 94, 1)',
+      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      borderWidth: 2,
+      pointRadius: 3,
+      pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+      fill: true,
+      tension: 0.4,
+    }],
+  }
+})
+
+const lineOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (ctx: any) => ` $${Number(ctx.raw).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
+      },
+    },
+  },
+  scales: {
+    y: {
+      grid: { color: 'rgba(148,163,184,0.1)' },
+      ticks: {
+        color: '#94a3b8',
+        callback: (v: any) => `$${Number(v).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`,
+      },
+    },
+    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+  },
+}
+
+// ── Chart 4: Top 5 Productos (horizontal bar) ────────────────────────────────
+const topProductsData = computed(() => {
+  const tp = dashboardData.value?.topProducts
+  if (!tp || tp.length === 0) return null
+  const top5 = tp.slice(0, 5)
+  return {
+    labels: top5.map((p: any) => {
+      const name: string = p.product?.name ?? p.name ?? ''
+      return name.length > 20 ? name.substring(0, 20) + '…' : name
+    }),
+    datasets: [{
+      label: 'Ingresos ($)',
+      data: top5.map((p: any) => Number(p.totalRevenue ?? p.revenue ?? 0)),
+      backgroundColor: [
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
+        'rgba(168, 85, 247, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+      ],
+      borderRadius: 4,
+    }],
+  }
+})
+
+const horizontalBarOptions = {
+  indexAxis: 'y' as const,
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (ctx: any) => ` $${Number(ctx.raw).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(148,163,184,0.1)' },
+      ticks: {
+        color: '#94a3b8',
+        callback: (v: any) => `$${Number(v / 1000).toFixed(0)}k`,
+      },
+    },
+    y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+  },
+}
+
+// ── Chart 5: Ventas vs Compras últimos 6 meses (grouped bar) ─────────────────
+const salesVsPurchasesData = computed(() => {
+  const d = dashboardData.value
+  if (!d) return null
+
+  // Build last 6 months labels
+  const months = Array.from({ length: 6 }, (_, i) =>
+    dayjs().subtract(5 - i, 'month').format('MMM YY'),
+  )
+
+  // We have totals for current month; pad previous months with 0 as placeholders
+  // until a proper endpoint with monthly history is available
+  const salesData = new Array(6).fill(0)
+  const purchasesData = new Array(6).fill(0)
+  salesData[5] = d.salesThisMonth?.total ?? 0
+  purchasesData[5] = d.purchasesThisMonth?.total ?? 0
+
+  return {
+    labels: months,
+    datasets: [
+      {
+        label: 'Ventas',
+        data: salesData,
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        borderRadius: 4,
+      },
+      {
+        label: 'Compras',
+        data: purchasesData,
+        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+        borderRadius: 4,
+      },
+    ],
+  }
+})
+
+const groupedBarOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: true,
+      labels: { color: '#94a3b8', boxWidth: 12, font: { size: 12 } },
+    },
+    tooltip: {
+      callbacks: {
+        label: (ctx: any) => ` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
+      },
+    },
+  },
+  scales: {
+    y: {
+      grid: { color: 'rgba(148,163,184,0.1)' },
+      ticks: {
+        color: '#94a3b8',
+        callback: (v: any) => `$${Number(v / 1000).toFixed(0)}k`,
+      },
+    },
+    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+  },
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function movementColor(type: string) {
   const colors: Record<string, string> = {
-    ENTRY: 'bg-green-500',
-    EXIT: 'bg-red-500',
-    ADJUSTMENT: 'bg-amber-500',
-    TRANSFER: 'bg-blue-500',
-    PRODUCTION_IN: 'bg-purple-500',
-    PRODUCTION_OUT: 'bg-orange-500',
+    ENTRY: 'bg-green-500', EXIT: 'bg-red-500', ADJUSTMENT: 'bg-amber-500',
+    TRANSFER: 'bg-blue-500', PRODUCTION_IN: 'bg-purple-500', PRODUCTION_OUT: 'bg-orange-500',
   }
   return colors[type] ?? 'bg-gray-400'
 }
@@ -279,24 +547,32 @@ function movementLabel(type: string) {
 }
 
 function formatCurrency(val: number) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(val ?? 0)
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency', currency: 'MXN', maximumFractionDigits: 0,
+  }).format(val ?? 0)
 }
 
 function formatDate(d: string) {
   return dayjs(d).fromNow()
 }
 
+// ── Data fetch ───────────────────────────────────────────────────────────────
 async function refresh() {
   loading.value = true
   try {
-    const [dashRes, lowRes, movRes] = await Promise.all([
+    const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
+    const today = dayjs().format('YYYY-MM-DD')
+
+    const [dashRes, lowRes, movRes, salesRes] = await Promise.all([
       reportsApi.dashboard(),
       productsApi.lowStock(),
       inventoryApi.movements({ limit: 10 }),
+      reportsApi.sales({ from: monthStart, to: today }),
     ])
     dashboardData.value = dashRes.data
     lowStockItems.value = lowRes.data
     recentMovements.value = movRes.data?.data ?? []
+    salesReport.value = salesRes.data
   } catch (e) {
     console.error(e)
   } finally {
@@ -305,7 +581,6 @@ async function refresh() {
 }
 
 onMounted(() => {
-  // Import dayjs plugin
   import('dayjs/plugin/relativeTime').then(m => dayjs.extend(m.default))
   refresh()
 })
