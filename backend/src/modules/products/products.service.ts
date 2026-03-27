@@ -111,13 +111,15 @@ export class ProductsService {
       }
     }
 
+    const { initialStock, ...productData } = dto;
     return this.prisma.product.create({
       data: {
-        ...dto,
-        costPrice: dto.costPrice ?? 0,
-        salePrice: dto.salePrice ?? 0,
-        minStock: dto.minStock ?? 0,
-        maxStock: dto.maxStock ?? 0,
+        ...productData,
+        costPrice: productData.costPrice ?? 0,
+        salePrice: productData.salePrice ?? 0,
+        minStock: productData.minStock ?? 0,
+        maxStock: productData.maxStock ?? 0,
+        currentStock: initialStock ?? 0,
       },
       include: {
         category: { select: { id: true, name: true, color: true } },

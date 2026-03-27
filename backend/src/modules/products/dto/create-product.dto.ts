@@ -105,4 +105,10 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(50)
   temper?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  initialStock?: number;
 }

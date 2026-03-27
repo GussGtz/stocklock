@@ -154,7 +154,12 @@
             <input v-model.number="form.salePrice" type="number" step="0.01" min="0" class="input" required />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="label">Stock Inicial</label>
+            <input v-model.number="form.initialStock" type="number" min="0" class="input" :disabled="!!editingId" />
+            <p v-if="editingId" class="text-xs text-gray-400 mt-1">Use Kardex para ajustar stock</p>
+          </div>
           <div>
             <label class="label">Stock Mínimo</label>
             <input v-model.number="form.minStock" type="number" min="0" class="input" />
@@ -213,8 +218,7 @@ const defaultForm = () => ({
   code: '', name: '', description: '', categoryId: '', unit: 'PIECE',
   weight: null, thickness: null, width: null, length: null,
   alloyType: '', temper: '', isAluminum: false,
-  costPrice: 0, salePrice: 0, minStock: 0, maxStock: null,
-  seriesId: null,
+  costPrice: 0, salePrice: 0, initialStock: 0, minStock: 0, maxStock: null,
 })
 
 const form = reactive(defaultForm())
@@ -281,8 +285,9 @@ async function submitForm() {
     ...(form.isAluminum !== undefined && { isAluminum: form.isAluminum }),
     ...(form.costPrice != null && { costPrice: form.costPrice }),
     ...(form.salePrice != null && { salePrice: form.salePrice }),
-    ...(form.minStock  != null && { minStock: form.minStock }),
-    ...(form.maxStock  != null && { maxStock: form.maxStock }),
+    ...(form.minStock    != null && { minStock: form.minStock }),
+    ...(form.maxStock    != null && { maxStock: form.maxStock }),
+    ...(!editingId.value && form.initialStock > 0 && { initialStock: form.initialStock }),
     ...(form.weight    != null && { weight: form.weight }),
     ...(form.thickness != null && { thickness: form.thickness }),
     ...(form.width     != null && { width: form.width }),
