@@ -269,12 +269,31 @@ async function submitForm() {
     return
   }
   saving.value = true
+  // Build clean payload — omit nulls, empty strings, and fields not in DTO (seriesId)
+  const payload = {
+    code: form.code,
+    name: form.name,
+    categoryId: form.categoryId,
+    unit: form.unit,
+    ...(form.description  && { description: form.description }),
+    ...(form.alloyType    && { alloyType: form.alloyType }),
+    ...(form.temper       && { temper: form.temper }),
+    ...(form.isAluminum !== undefined && { isAluminum: form.isAluminum }),
+    ...(form.costPrice != null && { costPrice: form.costPrice }),
+    ...(form.salePrice != null && { salePrice: form.salePrice }),
+    ...(form.minStock  != null && { minStock: form.minStock }),
+    ...(form.maxStock  != null && { maxStock: form.maxStock }),
+    ...(form.weight    != null && { weight: form.weight }),
+    ...(form.thickness != null && { thickness: form.thickness }),
+    ...(form.width     != null && { width: form.width }),
+    ...(form.length    != null && { length: form.length }),
+  }
   try {
     if (editingId.value) {
-      await productsApi.update(editingId.value, form)
+      await productsApi.update(editingId.value, payload)
       toast.success('Producto actualizado')
     } else {
-      await productsApi.create(form)
+      await productsApi.create(payload)
       toast.success('Producto creado')
     }
     showModal.value = false
