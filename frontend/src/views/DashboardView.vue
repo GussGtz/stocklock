@@ -1,210 +1,421 @@
 <template>
-  <div class="space-y-6">
-    <!-- Welcome -->
+  <div class="space-y-5">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════════════════════════════ -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <h1 class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
           Buenas {{ greeting }}, {{ auth.user?.firstName }}
         </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ today }} — Aquí está el resumen de tu operación
-        </p>
+        <p class="text-sm text-slate-400 dark:text-slate-500 mt-0.5 capitalize">{{ today }}</p>
       </div>
-      <button @click="refresh" class="btn-secondary">
-        <ArrowPathIcon :class="['w-4 h-4', loading && 'animate-spin']" />
+      <button @click="refresh" :disabled="loading"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300
+               bg-white dark:bg-slate-800 border border-[#E8EDF2] dark:border-slate-700
+               rounded-xl shadow-card hover:shadow-card-md hover:border-sky-200 transition-all duration-150 disabled:opacity-60">
+        <ArrowPathIcon :class="['w-4 h-4 text-sky-500', loading && 'animate-spin']" />
         Actualizar
       </button>
     </div>
 
-    <!-- KPI Cards — 6 cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      <StatCard v-for="stat in stats" :key="stat.label" v-bind="stat" :loading="loading" />
-    </div>
+    <!-- ═══════════════════════════════════════════════════════════
+         ROW 1 — KPI CARDS con mini sparklines
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-    <!-- Row 1: Inventario por Categoría + Estado Stock -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div class="card xl:col-span-2">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Inventario por Categoría</h3>
-          <span class="badge badge-blue text-xs">Unidades</span>
+      <!-- KPI: Total Productos -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-[#E8EDF2] dark:border-slate-700/70 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center">
+            <CubeIcon class="w-4.5 h-4.5 text-sky-500" />
+          </div>
+          <span :class="['inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full',
+            kpis.totalProducts > 0 ? 'bg-sky-50 text-sky-600 dark:bg-sky-900/30' : 'bg-gray-100 text-gray-500']">
+            <CubeIcon class="w-3 h-3" />
+            Activos
+          </span>
         </div>
-        <div class="h-64">
-          <Bar v-if="!loading && barData" :data="barData" :options="barOptions" />
-          <div v-else class="skeleton h-full rounded-lg" />
+        <p class="text-[28px] font-bold text-slate-800 dark:text-white leading-none">{{ loading ? '—' : kpis.totalProducts }}</p>
+        <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-1.5 uppercase tracking-wider">Total Productos</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50">
+          <span class="text-[11px] text-slate-400">Valor inventario</span>
+          <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300 ml-1">{{ loading ? '—' : formatCurrency(kpis.inventoryValue) }}</span>
         </div>
       </div>
 
-      <div class="card">
-        <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">Estado del Stock</h3>
-        <div class="h-48 flex items-center justify-center">
-          <Doughnut v-if="!loading && donutData" :data="donutData" :options="donutOptions" />
-          <div v-else class="skeleton w-40 h-40 rounded-full" />
+      <!-- KPI: Ventas del Mes + sparkline -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-[#E8EDF2] dark:border-slate-700/70 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+            <CurrencyDollarIcon class="w-4.5 h-4.5 text-emerald-500" />
+          </div>
+          <span class="inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30">
+            <ArrowTrendingUpIcon class="w-3 h-3" />
+            Este mes
+          </span>
         </div>
-        <div class="space-y-2 mt-4">
-          <div v-for="item in stockStatus" :key="item.label" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2">
-              <div :class="['w-3 h-3 rounded-full', item.color]" />
-              <span class="text-gray-600 dark:text-gray-400 text-xs">{{ item.label }}</span>
-            </div>
-            <span class="text-sm font-bold text-slate-900 dark:text-white">{{ item.value }}</span>
+        <p class="text-[28px] font-bold text-slate-800 dark:text-white leading-none">{{ loading ? '—' : formatCurrency(kpis.salesTotal) }}</p>
+        <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-1.5 uppercase tracking-wider">Ventas del Mes</p>
+        <!-- mini sparkline -->
+        <div class="mt-2 h-10">
+          <Line v-if="!loading && salesSparkData" :data="salesSparkData" :options="sparkOptions" />
+          <div v-else class="h-full skeleton rounded" />
+        </div>
+      </div>
+
+      <!-- KPI: Compras del Mes -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-[#E8EDF2] dark:border-slate-700/70 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+            <ShoppingCartIcon class="w-4.5 h-4.5 text-amber-500" />
+          </div>
+          <span class="inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-900/30">
+            <TruckIcon class="w-3 h-3" />
+            {{ loading ? '—' : kpis.purchasesCount }} órdenes
+          </span>
+        </div>
+        <p class="text-[28px] font-bold text-slate-800 dark:text-white leading-none">{{ loading ? '—' : formatCurrency(kpis.purchasesTotal) }}</p>
+        <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-1.5 uppercase tracking-wider">Compras del Mes</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50 flex items-center justify-between">
+          <span class="text-[11px] text-slate-400">Pendientes</span>
+          <span class="text-[11px] font-bold text-amber-600">{{ loading ? '—' : kpis.pendingPurchases }}</span>
+        </div>
+      </div>
+
+      <!-- KPI: Alertas + Movimientos -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-[#E8EDF2] dark:border-slate-700/70 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+            <BellAlertIcon class="w-4.5 h-4.5 text-red-500" />
+          </div>
+          <span :class="['inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full',
+            kpis.activeAlerts > 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/30' : 'bg-emerald-50 text-emerald-600']">
+            {{ kpis.activeAlerts > 0 ? 'Requiere atención' : 'Sin alertas' }}
+          </span>
+        </div>
+        <p class="text-[28px] font-bold text-slate-800 dark:text-white leading-none">{{ loading ? '—' : kpis.activeAlerts }}</p>
+        <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-1.5 uppercase tracking-wider">Alertas Activas</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50 flex items-center justify-between">
+          <span class="text-[11px] text-slate-400">Movimientos hoy</span>
+          <span class="text-[11px] font-bold text-violet-600">{{ loading ? '—' : kpis.movementsToday }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ROW 2 — Tendencia de Ventas (2/3) + Estado Stock (1/3)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+
+      <!-- Sales trend — wide -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card xl:col-span-2 p-5">
+        <div class="flex items-center justify-between mb-1">
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 dark:text-white">Tendencia de Ventas</h3>
+            <p class="text-xs text-slate-400 mt-0.5 capitalize">{{ currentMonth }}</p>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>Este mes
+            </span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Row 2: Ventas por día + Top Productos -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div class="card xl:col-span-2">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Ventas del Mes por Día</h3>
-          <span class="badge badge-green text-xs">{{ currentMonth }}</span>
-        </div>
-        <div class="h-64">
+        <div class="h-56 mt-3">
           <Line v-if="!loading && lineData" :data="lineData" :options="lineOptions" />
-          <div v-else class="skeleton h-full rounded-lg" />
+          <div v-else class="skeleton h-full rounded-xl" />
         </div>
       </div>
 
-      <div class="card">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Top 5 Productos Vendidos</h3>
-          <span class="badge badge-blue text-xs">Este mes</span>
+      <!-- Stock donut -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5">
+        <h3 class="text-sm font-bold text-slate-700 dark:text-white mb-4">Estado del Stock</h3>
+        <div class="relative flex items-center justify-center h-40">
+          <Doughnut v-if="!loading && donutData" :data="donutData" :options="donutOptions" />
+          <div v-else class="skeleton w-36 h-36 rounded-full" />
+          <div v-if="!loading" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span class="text-2xl font-bold text-slate-800 dark:text-white">{{ kpis.totalProducts }}</span>
+            <span class="text-[10px] text-slate-400 font-medium">productos</span>
+          </div>
         </div>
-        <div class="h-64">
-          <Bar v-if="!loading && topProductsData" :data="topProductsData" :options="horizontalBarOptions" />
-          <div v-else-if="loading" class="skeleton h-full rounded-lg" />
-          <div v-else class="flex flex-col items-center justify-center h-full text-gray-400 text-sm gap-2">
-            <ChartBarIcon class="w-10 h-10 opacity-30" />
-            Sin ventas este mes
+        <div class="mt-4 space-y-2">
+          <div v-for="item in stockStatusLegend" :key="item.label"
+            class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span :class="['w-2 h-2 rounded-full flex-shrink-0', item.dot]"></span>
+              <span class="text-xs text-slate-500 dark:text-slate-400">{{ item.label }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-16 h-1.5 rounded-full bg-[#F0F4F8] dark:bg-slate-700 overflow-hidden">
+                <div :class="['h-full rounded-full', item.bar]"
+                     :style="{ width: `${Math.min((item.value / Math.max(kpis.totalProducts, 1)) * 100, 100)}%` }"></div>
+              </div>
+              <span class="text-xs font-bold text-slate-700 dark:text-slate-200 w-6 text-right">{{ item.value }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Row 3: Ventas vs Compras + Órdenes Pendientes -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div class="card xl:col-span-2">
+    <!-- ═══════════════════════════════════════════════════════════
+         ROW 3 — Inventario por Categoría + Top Productos
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Ventas vs Compras — Últimos 6 Meses</h3>
-          <span class="badge badge-blue text-xs">Comparativa</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 dark:text-white">Inventario por Categoría</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Unidades en stock</p>
+          </div>
+          <span class="text-[11px] font-semibold text-sky-600 bg-sky-50 dark:bg-sky-900/20 px-2.5 py-1 rounded-full">Unidades</span>
         </div>
-        <div class="h-64">
-          <Bar v-if="!loading && salesVsPurchasesData" :data="salesVsPurchasesData" :options="groupedBarOptions" />
-          <div v-else class="skeleton h-full rounded-lg" />
+        <div class="h-52">
+          <Bar v-if="!loading && barData" :data="barData" :options="barOptions" />
+          <div v-else class="skeleton h-full rounded-xl" />
         </div>
       </div>
 
-      <!-- Órdenes pendientes -->
-      <div class="card">
-        <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-5">Órdenes Pendientes</h3>
-        <div v-if="loading" class="space-y-4">
-          <div v-for="i in 3" :key="i" class="skeleton h-16 rounded-lg" />
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 dark:text-white">Top 5 Productos Vendidos</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Por ingresos este mes</p>
+          </div>
+          <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-full">Este mes</span>
         </div>
-        <div v-else class="space-y-4">
-          <RouterLink to="/sales" class="flex items-center gap-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-            <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-              <ShoppingCartIcon class="w-5 h-5 text-white" />
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-slate-900 dark:text-white">Ventas Pendientes</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Draft + Confirmadas</p>
-            </div>
-            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ dashboardData?.pendingSales ?? 0 }}</span>
-          </RouterLink>
+        <div class="h-52">
+          <Bar v-if="!loading && topProductsData" :data="topProductsData" :options="horizontalBarOptions" />
+          <div v-else-if="loading" class="skeleton h-full rounded-xl" />
+          <div v-else class="flex flex-col items-center justify-center h-full text-slate-300 gap-3">
+            <ChartBarIcon class="w-12 h-12" />
+            <p class="text-sm font-medium">Sin ventas registradas este mes</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          <RouterLink to="/purchases" class="flex items-center gap-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-            <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+    <!-- ═══════════════════════════════════════════════════════════
+         ROW 4 — RING METRICS (the WOW factor — like reference)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <!-- Ring 1: Salud del Stock -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5 text-center">
+        <div class="relative inline-flex items-center justify-center w-28 h-28 mx-auto">
+          <Doughnut :data="ringStockData" :options="ringOptions" />
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-xl font-bold text-slate-800 dark:text-white">{{ loading ? '—' : ringValues.stockHealth }}%</span>
+          </div>
+        </div>
+        <p class="text-sm font-bold text-slate-700 dark:text-white mt-3">Salud de Stock</p>
+        <p class="text-xs text-slate-400 mt-0.5">Productos en nivel óptimo</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50">
+          <span :class="['text-[11px] font-bold px-2 py-0.5 rounded-full', ringValues.stockHealth >= 70 ? 'bg-emerald-50 text-emerald-600' : ringValues.stockHealth >= 40 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600']">
+            {{ ringValues.stockHealth >= 70 ? 'Excelente' : ringValues.stockHealth >= 40 ? 'Regular' : 'Crítico' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Ring 2: Ventas Completadas -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5 text-center">
+        <div class="relative inline-flex items-center justify-center w-28 h-28 mx-auto">
+          <Doughnut :data="ringSalesData" :options="ringOptions" />
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-xl font-bold text-slate-800 dark:text-white">{{ loading ? '—' : kpis.salesCount }}</span>
+          </div>
+        </div>
+        <p class="text-sm font-bold text-slate-700 dark:text-white mt-3">Ventas del Mes</p>
+        <p class="text-xs text-slate-400 mt-0.5">Órdenes registradas</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50">
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600">
+            {{ kpis.pendingSales }} pendientes
+          </span>
+        </div>
+      </div>
+
+      <!-- Ring 3: Cobertura de Inventario -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5 text-center">
+        <div class="relative inline-flex items-center justify-center w-28 h-28 mx-auto">
+          <Doughnut :data="ringCoverageData" :options="ringOptions" />
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-xl font-bold text-slate-800 dark:text-white">{{ loading ? '—' : ringValues.coverage }}%</span>
+          </div>
+        </div>
+        <p class="text-sm font-bold text-slate-700 dark:text-white mt-3">Cobertura</p>
+        <p class="text-xs text-slate-400 mt-0.5">Productos con stock disponible</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50">
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
+            {{ kpis.stockZero }} sin stock
+          </span>
+        </div>
+      </div>
+
+      <!-- Ring 4: Stock Bajo -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5 text-center">
+        <div class="relative inline-flex items-center justify-center w-28 h-28 mx-auto">
+          <Doughnut :data="ringAlertData" :options="ringOptions" />
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-xl font-bold text-slate-800 dark:text-white">{{ loading ? '—' : ringValues.alertPct }}%</span>
+          </div>
+        </div>
+        <p class="text-sm font-bold text-slate-700 dark:text-white mt-3">Stock Bajo</p>
+        <p class="text-xs text-slate-400 mt-0.5">Productos bajo el mínimo</p>
+        <div class="mt-3 pt-3 border-t border-[#F0F4F8] dark:border-slate-700/50">
+          <span :class="['text-[11px] font-bold px-2 py-0.5 rounded-full', ringValues.alertPct > 20 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600']">
+            {{ kpis.activeAlerts }} alertas activas
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ROW 5 — Ventas vs Compras + Órdenes Pendientes
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5 xl:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 dark:text-white">Ventas vs Compras</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Últimos 6 meses</p>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>Ventas</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-400"></span>Compras</span>
+          </div>
+        </div>
+        <div class="h-48">
+          <Bar v-if="!loading && salesVsPurchasesData" :data="salesVsPurchasesData" :options="groupedBarOptions" />
+          <div v-else class="skeleton h-full rounded-xl" />
+        </div>
+      </div>
+
+      <!-- Órdenes Pendientes -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5">
+        <h3 class="text-sm font-bold text-slate-700 dark:text-white mb-4">Resumen Operativo</h3>
+        <div v-if="loading" class="space-y-3">
+          <div v-for="i in 3" :key="i" class="skeleton h-14 rounded-xl" />
+        </div>
+        <div v-else class="space-y-3">
+          <RouterLink to="/sales"
+            class="flex items-center gap-3 p-3.5 rounded-xl hover:bg-[#F4F7FA] dark:hover:bg-slate-700/40 transition-colors group">
+            <div class="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow">
+              <CurrencyDollarIcon class="w-5 h-5 text-white" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-slate-700 dark:text-white">Ventas Pendientes</p>
+              <p class="text-[11px] text-slate-400">Draft + Confirmadas</p>
+            </div>
+            <span class="text-2xl font-bold text-sky-600 dark:text-sky-400">{{ kpis.pendingSales }}</span>
+          </RouterLink>
+          <RouterLink to="/purchases"
+            class="flex items-center gap-3 p-3.5 rounded-xl hover:bg-[#F4F7FA] dark:hover:bg-slate-700/40 transition-colors group">
+            <div class="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow">
               <TruckIcon class="w-5 h-5 text-white" />
             </div>
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-slate-900 dark:text-white">Compras Pendientes</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Draft + Enviadas + Confirmadas</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-slate-700 dark:text-white">Compras Pendientes</p>
+              <p class="text-[11px] text-slate-400">En proceso</p>
             </div>
-            <span class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ dashboardData?.pendingPurchases ?? 0 }}</span>
+            <span class="text-2xl font-bold text-amber-500 dark:text-amber-400">{{ kpis.pendingPurchases }}</span>
           </RouterLink>
-
-          <RouterLink to="/inventory" class="flex items-center gap-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-            <div class="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
+          <RouterLink to="/inventory"
+            class="flex items-center gap-3 p-3.5 rounded-xl hover:bg-[#F4F7FA] dark:hover:bg-slate-700/40 transition-colors group">
+            <div class="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow">
               <ExclamationTriangleIcon class="w-5 h-5 text-white" />
             </div>
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-slate-900 dark:text-white">Stock Bajo</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Productos bajo mínimo</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-slate-700 dark:text-white">Stock Bajo Mínimo</p>
+              <p class="text-[11px] text-slate-400">Requieren reposición</p>
             </div>
-            <span class="text-2xl font-bold text-red-600 dark:text-red-400">{{ dashboardData?.lowStockCount ?? 0 }}</span>
+            <span class="text-2xl font-bold text-red-500 dark:text-red-400">{{ kpis.activeAlerts }}</span>
           </RouterLink>
         </div>
       </div>
     </div>
 
-    <!-- Row 4: Stock Bajo + Movimientos Recientes -->
+    <!-- ═══════════════════════════════════════════════════════════
+         ROW 6 — Stock Bajo + Movimientos Recientes
+    ══════════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <div class="card">
+
+      <!-- Low stock table -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            Stock Bajo
-            <span class="badge badge-red">{{ lowStockItems.length }}</span>
-          </h3>
-          <RouterLink to="/inventory" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors">
-            Ver todo →
+          <div class="flex items-center gap-3">
+            <h3 class="text-sm font-bold text-slate-700 dark:text-white">Productos con Stock Bajo</h3>
+            <span v-if="lowStockItems.length > 0"
+              class="min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {{ lowStockItems.length }}
+            </span>
+          </div>
+          <RouterLink to="/inventory"
+            class="text-[11px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 transition-colors">
+            Ver inventario →
           </RouterLink>
         </div>
-        <div v-if="loading" class="space-y-3">
-          <div v-for="i in 4" :key="i" class="skeleton h-12 rounded-lg" />
+        <div v-if="loading" class="space-y-2.5">
+          <div v-for="i in 4" :key="i" class="skeleton h-11 rounded-xl" />
         </div>
-        <div v-else-if="lowStockItems.length === 0" class="text-center py-8 text-gray-400 text-sm">
-          ✅ Todo el inventario está en niveles óptimos
+        <div v-else-if="lowStockItems.length === 0"
+          class="flex flex-col items-center justify-center py-10 text-slate-300 gap-3">
+          <CheckCircleIcon class="w-12 h-12 text-emerald-400" />
+          <p class="text-sm font-semibold text-slate-500">Todo el inventario en niveles óptimos</p>
         </div>
         <div v-else class="space-y-2">
-          <div
-            v-for="item in lowStockItems.slice(0, 5)"
-            :key="item.id"
-            class="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-600/10 rounded-lg border border-red-100 dark:border-red-600/20"
-          >
-            <ExclamationTriangleIcon class="w-4 h-4 text-red-500 flex-shrink-0" />
+          <div v-for="item in lowStockItems.slice(0, 5)" :key="item.id"
+            class="flex items-center gap-3 p-3 rounded-xl border border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10">
+            <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+              <ExclamationTriangleIcon class="w-4 h-4 text-red-500" />
+            </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-semibold text-slate-900 dark:text-white truncate">{{ item.name }}</div>
-              <div class="text-xs text-gray-400">{{ item.code }}</div>
+              <p class="text-xs font-bold text-slate-700 dark:text-white truncate">{{ item.name }}</p>
+              <p class="text-[10px] text-slate-400">{{ item.code }}</p>
             </div>
             <div class="text-right flex-shrink-0">
-              <div class="text-sm font-bold text-red-600">{{ item.currentStock }} {{ item.unit }}</div>
-              <div class="text-xs text-gray-400">Mín: {{ item.minStock }}</div>
+              <p class="text-sm font-bold text-red-500">{{ item.currentStock }}</p>
+              <p class="text-[10px] text-slate-400">Mín: {{ item.minStock }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card">
+      <!-- Recent movements -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-[#E8EDF2] dark:border-slate-700/70 shadow-card p-5">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Movimientos Recientes</h3>
-          <RouterLink to="/inventory/movements" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors">
-            Ver todo →
+          <h3 class="text-sm font-bold text-slate-700 dark:text-white">Movimientos Recientes</h3>
+          <RouterLink to="/inventory/movements"
+            class="text-[11px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 transition-colors">
+            Ver todos →
           </RouterLink>
         </div>
-        <div v-if="loading" class="space-y-3">
+        <div v-if="loading" class="space-y-2.5">
           <div v-for="i in 5" :key="i" class="skeleton h-10 rounded-lg" />
         </div>
-        <div v-else class="space-y-2">
-          <div
-            v-for="mov in recentMovements"
-            :key="mov.id"
-            class="flex items-center gap-3 py-2.5 border-b border-gray-100 dark:border-slate-700/60 last:border-0"
-          >
-            <div :class="['w-2 h-2 rounded-full flex-shrink-0', movementColor(mov.type)]" />
+        <div v-else class="divide-y divide-[#F0F4F8] dark:divide-slate-700/40">
+          <div v-for="mov in recentMovements" :key="mov.id"
+            class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+            <div :class="['w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold', movBg(mov.type)]">
+              {{ mov.type === 'EXIT' ? '-' : '+' }}
+            </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-slate-900 dark:text-white truncate">{{ mov.product?.name }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ movementLabel(mov.type) }} · {{ formatDate(mov.createdAt) }}</div>
+              <p class="text-xs font-semibold text-slate-700 dark:text-white truncate">{{ mov.product?.name }}</p>
+              <p class="text-[10px] text-slate-400">{{ movLabel(mov.type) }} · {{ formatDate(mov.createdAt) }}</p>
             </div>
-            <div :class="['text-sm font-semibold', mov.type === 'EXIT' ? 'text-red-500' : 'text-green-500']">
+            <span :class="['text-xs font-bold', mov.type === 'EXIT' ? 'text-red-500' : 'text-emerald-600']">
               {{ mov.type === 'EXIT' ? '-' : '+' }}{{ mov.quantity }}
-            </div>
+            </span>
           </div>
-          <div v-if="recentMovements.length === 0" class="text-center py-6 text-gray-400 text-sm">
-            Sin movimientos recientes
+          <div v-if="recentMovements.length === 0"
+            class="flex flex-col items-center justify-center py-10 text-slate-300 gap-2">
+            <ArrowsRightLeftIcon class="w-10 h-10" />
+            <p class="text-sm font-medium text-slate-400">Sin movimientos recientes</p>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -217,14 +428,14 @@ import {
   ArcElement, Tooltip, Legend, Title, LineElement, PointElement, Filler,
 } from 'chart.js'
 import {
-  ArrowPathIcon, ExclamationTriangleIcon,
-  ShoppingCartIcon, TruckIcon, ChartBarIcon,
+  ArrowPathIcon, ExclamationTriangleIcon, ShoppingCartIcon, TruckIcon,
+  ChartBarIcon, CubeIcon, CurrencyDollarIcon, BellAlertIcon,
+  ArrowTrendingUpIcon, CheckCircleIcon, ArrowsRightLeftIcon,
 } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import { useAuthStore } from '@/stores/auth'
 import { reportsApi, productsApi, inventoryApi } from '@/services/api'
-import StatCard from '@/components/ui/StatCard.vue'
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement,
@@ -233,162 +444,124 @@ ChartJS.register(
 )
 dayjs.locale('es')
 
-const auth = useAuthStore()
-const loading = ref(true)
-const dashboardData = ref<any>(null)
-const salesReport = ref<any>(null)
-const lowStockItems = ref<any[]>([])
+const auth            = useAuthStore()
+const loading         = ref(true)
+const dashboardData   = ref<any>(null)
+const salesReport     = ref<any>(null)
+const lowStockItems   = ref<any[]>([])
 const recentMovements = ref<any[]>([])
 
-const today = computed(() => dayjs().format('dddd, D [de] MMMM YYYY'))
+const today        = computed(() => dayjs().format('dddd, D [de] MMMM [de] YYYY'))
 const currentMonth = computed(() => dayjs().format('MMMM YYYY'))
-const greeting = computed(() => {
+const greeting     = computed(() => {
   const h = dayjs().hour()
-  if (h < 12) return 'días'
-  if (h < 18) return 'tardes'
-  return 'noches'
+  return h < 12 ? 'días' : h < 18 ? 'tardes' : 'noches'
 })
 
-// ── KPI stats (6 cards) ──────────────────────────────────────────────────────
-const stats = computed(() => {
+// ── KPI helpers ─────────────────────────────────────────────────────────────
+const kpis = computed(() => {
   const d = dashboardData.value
-  if (!d) return Array(6).fill({ label: '', value: '', icon: null, color: '' })
-  return [
-    {
-      label: 'Total Productos',
-      value: d.totalProducts ?? 0,
-      change: d.productsChange,
-      icon: 'cube',
-      iconBg: 'bg-primary-100 dark:bg-primary-900/30',
-      iconColor: 'text-primary-600 dark:text-primary-400',
-    },
-    {
-      label: 'Valor Inventario',
-      value: formatCurrency(d.totalInventoryValue ?? 0),
-      icon: 'currency',
-      iconBg: 'bg-green-50 dark:bg-green-600/20',
-      iconColor: 'text-green-600 dark:text-green-400',
-    },
-    {
-      label: 'Ventas del Mes',
-      value: formatCurrency(d.salesThisMonth?.total ?? 0),
-      subtitle: `${d.salesThisMonth?.count ?? 0} órdenes`,
-      icon: 'chart',
-      iconBg: 'bg-blue-50 dark:bg-blue-600/20',
-      iconColor: 'text-blue-600 dark:text-blue-400',
-    },
-    {
-      label: 'Compras del Mes',
-      value: formatCurrency(d.purchasesThisMonth?.total ?? 0),
-      subtitle: `${d.purchasesThisMonth?.count ?? 0} órdenes`,
-      icon: 'truck',
-      iconBg: 'bg-amber-50 dark:bg-amber-600/20',
-      iconColor: 'text-amber-600 dark:text-amber-400',
-    },
-    {
-      label: 'Movimientos Hoy',
-      value: d.movementsToday ?? 0,
-      icon: 'arrows',
-      iconBg: 'bg-purple-100 dark:bg-purple-900/30',
-      iconColor: 'text-purple-600 dark:text-purple-400',
-    },
-    {
-      label: 'Alertas Activas',
-      value: d.activeAlerts ?? d.lowStockCount ?? 0,
-      icon: 'bell',
-      iconBg: 'bg-amber-50 dark:bg-amber-600/20',
-      iconColor: 'text-amber-600 dark:text-amber-400',
-    },
-  ]
-})
-
-// ── Chart 1: Inventario por Categoría (bar) ──────────────────────────────────
-const barData = computed(() => {
-  const d = dashboardData.value
-  if (!d?.stockByCategory) return null
+  if (!d) return {
+    totalProducts: 0, inventoryValue: 0,
+    salesTotal: 0, salesCount: 0,
+    purchasesTotal: 0, purchasesCount: 0,
+    pendingSales: 0, pendingPurchases: 0,
+    movementsToday: 0, activeAlerts: 0,
+    stockNormal: 0, stockLow: 0, stockZero: 0, stockOver: 0,
+  }
   return {
-    labels: d.stockByCategory.map((c: any) => c.category),
+    totalProducts:    d.totalProducts ?? 0,
+    inventoryValue:   d.totalInventoryValue ?? 0,
+    salesTotal:       d.salesThisMonth?.total ?? 0,
+    salesCount:       d.salesThisMonth?.count ?? 0,
+    purchasesTotal:   d.purchasesThisMonth?.total ?? 0,
+    purchasesCount:   d.purchasesThisMonth?.count ?? 0,
+    pendingSales:     d.pendingSales ?? 0,
+    pendingPurchases: d.pendingPurchases ?? 0,
+    movementsToday:   d.movementsToday ?? 0,
+    activeAlerts:     d.activeAlerts ?? d.lowStockCount ?? 0,
+    stockNormal:      d.stockNormal ?? 0,
+    stockLow:         d.stockLow ?? 0,
+    stockZero:        d.stockZero ?? 0,
+    stockOver:        d.stockOver ?? 0,
+  }
+})
+
+// ── Ring computed values ─────────────────────────────────────────────────────
+const ringValues = computed(() => {
+  const k   = kpis.value
+  const tot = Math.max(k.totalProducts, 1)
+  return {
+    stockHealth: Math.round((k.stockNormal / tot) * 100),
+    coverage:    Math.round(((tot - k.stockZero) / tot) * 100),
+    alertPct:    Math.round(((k.stockLow + k.stockZero) / tot) * 100),
+  }
+})
+
+// ── Stock legend ─────────────────────────────────────────────────────────────
+const stockStatusLegend = computed(() => [
+  { label: 'Normal',    value: kpis.value.stockNormal, dot: 'bg-emerald-500', bar: 'bg-emerald-500' },
+  { label: 'Stock bajo', value: kpis.value.stockLow,  dot: 'bg-amber-400',   bar: 'bg-amber-400'   },
+  { label: 'Sin stock', value: kpis.value.stockZero,   dot: 'bg-red-500',     bar: 'bg-red-500'     },
+  { label: 'Exceso',    value: kpis.value.stockOver,   dot: 'bg-sky-400',     bar: 'bg-sky-400'     },
+])
+
+// ── CHART 1: Sparkline ventas ─────────────────────────────────────────────────
+const salesSparkData = computed(() => {
+  const orders = salesReport.value?.orders
+  if (!orders) return null
+  const days = dayjs().daysInMonth()
+  const totals = new Array(days).fill(0)
+  for (const o of orders) {
+    const d = dayjs(o.saleDate).date() - 1
+    if (d >= 0 && d < days) totals[d] += Number(o.total)
+  }
+  return {
+    labels: totals.map((_, i) => i + 1),
     datasets: [{
-      label: 'Unidades en Stock',
-      data: d.stockByCategory.map((c: any) => c.quantity),
-      backgroundColor: 'rgba(59, 130, 246, 0.8)',
-      borderColor: 'rgba(59, 130, 246, 1)',
-      borderWidth: 1,
-      borderRadius: 6,
+      data: totals,
+      borderColor: '#10B981',
+      backgroundColor: 'rgba(16,185,129,0.15)',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: true,
+      tension: 0.4,
     }],
   }
 })
 
-const barOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } },
-    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
-  },
+const sparkOptions = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { enabled: false } },
+  scales: { x: { display: false }, y: { display: false } },
+  elements: { point: { radius: 0 } },
+  animation: { duration: 600 },
 }
 
-// ── Chart 2: Estado del Stock (donut) ────────────────────────────────────────
-const donutData = computed(() => {
-  const d = dashboardData.value
-  if (!d) return null
-  return {
-    labels: ['Normal', 'Stock Bajo', 'Sin Stock', 'Exceso'],
-    datasets: [{
-      data: [d.stockNormal ?? 0, d.stockLow ?? 0, d.stockZero ?? 0, d.stockOver ?? 0],
-      backgroundColor: ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6'],
-      borderWidth: 0,
-    }],
-  }
-})
-
-const donutOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  cutout: '70%',
-  plugins: { legend: { display: false } },
-}
-
-const stockStatus = computed(() => {
-  const d = dashboardData.value
-  if (!d) return []
-  return [
-    { label: 'Stock Normal', value: d.stockNormal ?? 0, color: 'bg-green-500' },
-    { label: 'Stock Bajo', value: d.stockLow ?? 0, color: 'bg-amber-500' },
-    { label: 'Sin Stock', value: d.stockZero ?? 0, color: 'bg-red-500' },
-    { label: 'Exceso', value: d.stockOver ?? 0, color: 'bg-blue-500' },
-  ]
-})
-
-// ── Chart 3: Ventas por día del mes (line) ───────────────────────────────────
+// ── CHART 2: Tendencia ventas (line/area) ─────────────────────────────────────
 const lineData = computed(() => {
   const orders = salesReport.value?.orders
   if (!orders) return null
-
-  const daysInMonth = dayjs().daysInMonth()
-  const labels = Array.from({ length: daysInMonth }, (_, i) =>
-    String(i + 1).padStart(2, '0'),
+  const days = dayjs().daysInMonth()
+  const labels = Array.from({ length: days }, (_, i) =>
+    dayjs().startOf('month').add(i, 'day').format('D MMM'),
   )
-  const totals = new Array(daysInMonth).fill(0)
-
-  for (const order of orders) {
-    const day = dayjs(order.saleDate).date() - 1
-    if (day >= 0 && day < daysInMonth) {
-      totals[day] += Number(order.total)
-    }
+  const totals = new Array(days).fill(0)
+  for (const o of orders) {
+    const d = dayjs(o.saleDate).date() - 1
+    if (d >= 0 && d < days) totals[d] += Number(o.total)
   }
-
   return {
     labels,
     datasets: [{
-      label: 'Ventas ($)',
+      label: 'Ventas',
       data: totals,
-      borderColor: 'rgba(34, 197, 94, 1)',
-      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      borderColor: '#0EA5E9',
+      backgroundColor: 'rgba(14,165,233,0.08)',
       borderWidth: 2,
-      pointRadius: 3,
-      pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: '#0EA5E9',
       fill: true,
       tension: 0.4,
     }],
@@ -396,188 +569,172 @@ const lineData = computed(() => {
 })
 
 const lineOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
+  responsive: true, maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
     tooltip: {
-      callbacks: {
-        label: (ctx: any) => ` $${Number(ctx.raw).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
-      },
+      mode: 'index' as const, intersect: false,
+      backgroundColor: '#1e293b', titleColor: '#94a3b8', bodyColor: '#fff',
+      padding: 10, borderColor: 'rgba(148,163,184,0.1)', borderWidth: 1,
+      callbacks: { label: (ctx: any) => ` $${Number(ctx.raw).toLocaleString('es-MX', { maximumFractionDigits: 0 })}` },
     },
   },
   scales: {
     y: {
-      grid: { color: 'rgba(148,163,184,0.1)' },
-      ticks: {
-        color: '#94a3b8',
-        callback: (v: any) => `$${Number(v).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`,
-      },
+      grid: { color: 'rgba(148,163,184,0.06)' },
+      border: { display: false },
+      ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v: any) => `$${(v/1000).toFixed(0)}k` },
     },
-    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+    x: {
+      grid: { display: false },
+      border: { display: false },
+      ticks: { color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 10 },
+    },
   },
 }
 
-// ── Chart 4: Top 5 Productos (horizontal bar) ────────────────────────────────
+// ── CHART 3: Donut stock ──────────────────────────────────────────────────────
+const donutData = computed(() => {
+  const k = kpis.value
+  if (!dashboardData.value) return null
+  return {
+    labels: ['Normal', 'Stock Bajo', 'Sin Stock', 'Exceso'],
+    datasets: [{ data: [k.stockNormal, k.stockLow, k.stockZero, k.stockOver], backgroundColor: ['#10B981','#F59E0B','#EF4444','#0EA5E9'], borderWidth: 0, hoverOffset: 4 }],
+  }
+})
+
+const donutOptions = { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: true } } }
+
+// ── CHART 4: Inventario por categoría (bar) ───────────────────────────────────
+const barData = computed(() => {
+  const d = dashboardData.value
+  if (!d?.stockByCategory) return null
+  return {
+    labels: d.stockByCategory.map((c: any) => c.category),
+    datasets: [{
+      label: 'Unidades',
+      data: d.stockByCategory.map((c: any) => c.quantity),
+      backgroundColor: ['#0EA5E9','#10B981','#F59E0B','#8B5CF6','#EF4444','#06B6D4','#F97316'],
+      borderRadius: 8,
+      borderSkipped: false,
+    }],
+  }
+})
+
+const barOptions = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b', titleColor: '#94a3b8', bodyColor: '#fff', padding: 10 } },
+  scales: {
+    y: { grid: { color: 'rgba(148,163,184,0.06)' }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+  },
+}
+
+// ── CHART 5: Top productos (horizontal bar) ───────────────────────────────────
 const topProductsData = computed(() => {
   const tp = dashboardData.value?.topProducts
   if (!tp || tp.length === 0) return null
   const top5 = tp.slice(0, 5)
   return {
     labels: top5.map((p: any) => {
-      const name: string = p.product?.name ?? p.name ?? ''
-      return name.length > 20 ? name.substring(0, 20) + '…' : name
+      const n: string = p.product?.name ?? p.name ?? ''
+      return n.length > 22 ? n.substring(0, 22) + '…' : n
     }),
     datasets: [{
-      label: 'Ingresos ($)',
+      label: 'Ingresos',
       data: top5.map((p: any) => Number(p.totalRevenue ?? p.revenue ?? 0)),
-      backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(168, 85, 247, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-      ],
-      borderRadius: 4,
+      backgroundColor: ['#0EA5E9','#10B981','#F59E0B','#8B5CF6','#EF4444'],
+      borderRadius: 6,
     }],
   }
 })
 
 const horizontalBarOptions = {
   indexAxis: 'y' as const,
-  responsive: true,
-  maintainAspectRatio: false,
+  responsive: true, maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
-    tooltip: {
-      callbacks: {
-        label: (ctx: any) => ` $${Number(ctx.raw).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
-      },
-    },
+    tooltip: { backgroundColor: '#1e293b', titleColor: '#94a3b8', bodyColor: '#fff', padding: 10,
+      callbacks: { label: (ctx: any) => ` $${Number(ctx.raw).toLocaleString('es-MX', { maximumFractionDigits: 0 })}` } },
   },
   scales: {
-    x: {
-      grid: { color: 'rgba(148,163,184,0.1)' },
-      ticks: {
-        color: '#94a3b8',
-        callback: (v: any) => `$${Number(v / 1000).toFixed(0)}k`,
-      },
-    },
-    y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+    x: { grid: { color: 'rgba(148,163,184,0.06)' }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v: any) => `$${(v/1000).toFixed(0)}k` } },
+    y: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
   },
 }
 
-// ── Chart 5: Ventas vs Compras últimos 6 meses (grouped bar) ─────────────────
+// ── CHART 6: Ventas vs Compras (grouped bar) ──────────────────────────────────
 const salesVsPurchasesData = computed(() => {
   const d = dashboardData.value
   if (!d) return null
-
-  // Build last 6 months labels
-  const months = Array.from({ length: 6 }, (_, i) =>
-    dayjs().subtract(5 - i, 'month').format('MMM YY'),
-  )
-
-  // We have totals for current month; pad previous months with 0 as placeholders
-  // until a proper endpoint with monthly history is available
-  const salesData = new Array(6).fill(0)
-  const purchasesData = new Array(6).fill(0)
-  salesData[5] = d.salesThisMonth?.total ?? 0
-  purchasesData[5] = d.purchasesThisMonth?.total ?? 0
-
+  const months = Array.from({ length: 6 }, (_, i) => dayjs().subtract(5 - i, 'month').format('MMM YY'))
+  const salesData = new Array(6).fill(0); salesData[5] = d.salesThisMonth?.total ?? 0
+  const purchData = new Array(6).fill(0); purchData[5] = d.purchasesThisMonth?.total ?? 0
   return {
     labels: months,
     datasets: [
-      {
-        label: 'Ventas',
-        data: salesData,
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-        borderRadius: 4,
-      },
-      {
-        label: 'Compras',
-        data: purchasesData,
-        backgroundColor: 'rgba(245, 158, 11, 0.8)',
-        borderRadius: 4,
-      },
+      { label: 'Ventas',  data: salesData, backgroundColor: '#10B981', borderRadius: 6, borderSkipped: false },
+      { label: 'Compras', data: purchData, backgroundColor: '#F59E0B', borderRadius: 6, borderSkipped: false },
     ],
   }
 })
 
 const groupedBarOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
+  responsive: true, maintainAspectRatio: false,
   plugins: {
-    legend: {
-      display: true,
-      labels: { color: '#94a3b8', boxWidth: 12, font: { size: 12 } },
-    },
-    tooltip: {
-      callbacks: {
-        label: (ctx: any) => ` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`,
-      },
-    },
+    legend: { display: false },
+    tooltip: { backgroundColor: '#1e293b', titleColor: '#94a3b8', bodyColor: '#fff', padding: 10,
+      callbacks: { label: (ctx: any) => ` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString('es-MX', { maximumFractionDigits: 0 })}` } },
   },
   scales: {
-    y: {
-      grid: { color: 'rgba(148,163,184,0.1)' },
-      ticks: {
-        color: '#94a3b8',
-        callback: (v: any) => `$${Number(v / 1000).toFixed(0)}k`,
-      },
-    },
-    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+    y: { grid: { color: 'rgba(148,163,184,0.06)' }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v: any) => `$${(v/1000).toFixed(0)}k` } },
+    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
   },
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function movementColor(type: string) {
-  const colors: Record<string, string> = {
-    ENTRY: 'bg-green-500', EXIT: 'bg-red-500', ADJUSTMENT: 'bg-amber-500',
-    TRANSFER: 'bg-blue-500', PRODUCTION_IN: 'bg-purple-500', PRODUCTION_OUT: 'bg-orange-500',
-  }
-  return colors[type] ?? 'bg-gray-400'
-}
+// ── RING CHARTS ───────────────────────────────────────────────────────────────
+const ringOptions = { responsive: true, maintainAspectRatio: false, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 800 } }
 
-function movementLabel(type: string) {
-  const labels: Record<string, string> = {
-    ENTRY: 'Entrada', EXIT: 'Salida', ADJUSTMENT: 'Ajuste',
-    TRANSFER: 'Transferencia', PRODUCTION_IN: 'Entrada Prod.', PRODUCTION_OUT: 'Salida Prod.',
-  }
-  return labels[type] ?? type
-}
+const ringStockData = computed(() => ({
+  datasets: [{ data: [ringValues.value.stockHealth, 100 - ringValues.value.stockHealth], backgroundColor: [ringValues.value.stockHealth >= 70 ? '#10B981' : ringValues.value.stockHealth >= 40 ? '#F59E0B' : '#EF4444', '#F0F4F8'], borderWidth: 0, hoverOffset: 0 }],
+}))
 
-function formatCurrency(val: number) {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency', currency: 'MXN', maximumFractionDigits: 0,
-  }).format(val ?? 0)
-}
+const ringSalesData = computed(() => {
+  const pct = Math.min(Math.round((kpis.value.salesCount / Math.max(kpis.value.salesCount + kpis.value.pendingSales, 1)) * 100), 100)
+  return { datasets: [{ data: [pct, 100 - pct], backgroundColor: ['#0EA5E9', '#F0F4F8'], borderWidth: 0, hoverOffset: 0 }] }
+})
 
-function formatDate(d: string) {
-  return dayjs(d).fromNow()
-}
+const ringCoverageData = computed(() => ({
+  datasets: [{ data: [ringValues.value.coverage, 100 - ringValues.value.coverage], backgroundColor: ['#8B5CF6', '#F0F4F8'], borderWidth: 0, hoverOffset: 0 }],
+}))
 
-// ── Data fetch ───────────────────────────────────────────────────────────────
+const ringAlertData = computed(() => ({
+  datasets: [{ data: [ringValues.value.alertPct, 100 - ringValues.value.alertPct], backgroundColor: [ringValues.value.alertPct > 20 ? '#EF4444' : '#F59E0B', '#F0F4F8'], borderWidth: 0, hoverOffset: 0 }],
+}))
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const movBg = (t: string) => ({ ENTRY: 'bg-emerald-500', EXIT: 'bg-red-500', ADJUSTMENT: 'bg-amber-400', TRANSFER: 'bg-sky-500', PRODUCTION_IN: 'bg-violet-500', PRODUCTION_OUT: 'bg-orange-500' }[t] ?? 'bg-slate-400')
+const movLabel = (t: string) => ({ ENTRY: 'Entrada', EXIT: 'Salida', ADJUSTMENT: 'Ajuste', TRANSFER: 'Transferencia', PRODUCTION_IN: 'Entrada Prod.', PRODUCTION_OUT: 'Salida Prod.' }[t] ?? t)
+const formatCurrency = (v: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v ?? 0)
+const formatDate = (d: string) => dayjs(d).fromNow()
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 async function refresh() {
   loading.value = true
   try {
-    const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
+    const from  = dayjs().startOf('month').format('YYYY-MM-DD')
     const today = dayjs().format('YYYY-MM-DD')
-
     const [dashRes, lowRes, movRes, salesRes] = await Promise.all([
       reportsApi.dashboard(),
       productsApi.lowStock(),
-      inventoryApi.movements({ limit: 10 }),
-      reportsApi.sales({ from: monthStart, to: today }),
+      inventoryApi.movements({ limit: 8 }),
+      reportsApi.sales({ from, to: today }),
     ])
-    dashboardData.value = dashRes.data
-    lowStockItems.value = lowRes.data
+    dashboardData.value   = dashRes.data
+    lowStockItems.value   = lowRes.data
     recentMovements.value = movRes.data?.data ?? []
-    salesReport.value = salesRes.data
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
+    salesReport.value     = salesRes.data
+  } catch (e) { console.error(e) } finally { loading.value = false }
 }
 
 onMounted(() => {
