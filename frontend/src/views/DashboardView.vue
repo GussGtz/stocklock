@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Buenas {{ greeting }}, {{ auth.user?.firstName }} 👋
+          Buenas {{ greeting }}, {{ auth.user?.firstName }}
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
           {{ today }} — Aquí está el resumen de tu operación
