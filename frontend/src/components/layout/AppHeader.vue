@@ -1,36 +1,38 @@
 <template>
-  <header class="h-[88px] bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700/80 flex items-center gap-2 px-4 flex-shrink-0">
+  <header class="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700/80 flex items-center gap-3 px-4 flex-shrink-0">
 
-    <!-- Toggle sidebar collapse -->
-    <button
-      @click="uiStore.toggleCollapsed"
-      class="btn-ghost btn-icon text-gray-500 dark:text-gray-400 hidden lg:flex"
-      title="Colapsar panel"
-    >
-      <Bars3Icon class="w-5 h-5" />
-    </button>
+    <!-- Logo -->
+    <RouterLink to="/dashboard" class="flex items-center gap-2.5 flex-shrink-0 mr-1">
+      <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+        <img src="@/assets/logo.png" alt="StockLock" class="w-full h-full object-contain" />
+      </div>
+      <span class="font-bold text-slate-900 dark:text-white text-sm hidden sm:block tracking-tight">
+        StockLock
+      </span>
+    </RouterLink>
 
-    <!-- Mobile menu toggle -->
-    <button
-      @click="uiStore.toggleSidebar"
-      class="btn-ghost btn-icon text-gray-500 dark:text-gray-400 flex lg:hidden"
-    >
-      <Bars3Icon class="w-5 h-5" />
-    </button>
+    <!-- Separator -->
+    <div class="w-px h-5 bg-gray-200 dark:bg-slate-700 hidden sm:block flex-shrink-0"></div>
 
-    <!-- Breadcrumb / Page title -->
-    <div class="flex items-center gap-2 flex-1 min-w-0">
-      <nav class="flex items-center gap-1.5 text-sm min-w-0">
-        <span class="text-gray-400 dark:text-gray-500 font-medium hidden sm:block">StockLock</span>
-        <ChevronRightIcon class="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 flex-shrink-0 hidden sm:block" />
-        <span class="font-semibold text-slate-900 dark:text-white truncate">
-          {{ route.meta.title || 'Dashboard' }}
-        </span>
-      </nav>
-    </div>
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-1.5 text-sm min-w-0 flex-1">
+      <span
+        v-if="sectionLabel"
+        :class="['font-medium flex-shrink-0 hidden sm:block', sectionColor]"
+      >
+        {{ sectionLabel }}
+      </span>
+      <ChevronRightIcon
+        v-if="sectionLabel && pageTitle"
+        class="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 flex-shrink-0 hidden sm:block"
+      />
+      <span class="font-semibold text-slate-800 dark:text-gray-100 truncate">
+        {{ pageTitle }}
+      </span>
+    </nav>
 
     <!-- ── Right actions ── -->
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-0.5 flex-shrink-0">
 
       <!-- Search -->
       <div class="relative hidden md:block">
@@ -39,9 +41,8 @@
           class="btn-ghost btn-icon text-gray-500 dark:text-gray-400"
           title="Buscar"
         >
-          <MagnifyingGlassIcon class="w-5 h-5" />
+          <MagnifyingGlassIcon class="w-4.5 h-4.5" />
         </button>
-
         <Transition name="search-fade">
           <div
             v-if="searchOpen"
@@ -80,17 +81,17 @@
         class="btn-ghost btn-icon text-gray-500 dark:text-gray-400"
         :title="uiStore.darkMode ? 'Modo claro' : 'Modo oscuro'"
       >
-        <SunIcon v-if="uiStore.darkMode" class="w-5 h-5" />
-        <MoonIcon v-else class="w-5 h-5" />
+        <SunIcon v-if="uiStore.darkMode" class="w-4.5 h-4.5" />
+        <MoonIcon v-else class="w-4.5 h-4.5" />
       </button>
 
       <!-- Alerts bell -->
       <RouterLink to="/alerts" class="btn-ghost btn-icon relative text-gray-500 dark:text-gray-400">
-        <BellIcon class="w-5 h-5" />
+        <BellIcon class="w-4.5 h-4.5" />
         <Transition name="bounce-in">
           <span
             v-if="alerts.unreadCount > 0"
-            class="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
+            class="absolute top-1 right-1 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
           >
             {{ alerts.unreadCount > 9 ? '9+' : alerts.unreadCount }}
           </span>
@@ -98,25 +99,19 @@
       </RouterLink>
 
       <!-- Divider -->
-      <div class="w-px h-6 bg-gray-200 dark:bg-slate-700 mx-1"></div>
+      <div class="w-px h-5 bg-gray-200 dark:bg-slate-700 mx-1"></div>
 
       <!-- User menu -->
       <Menu as="div" class="relative">
-        <MenuButton
-          class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <div class="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center ring-2 ring-primary-200/50 dark:ring-primary-800/50">
+        <MenuButton class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+          <div class="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center ring-2 ring-primary-200/50 dark:ring-primary-800/50 flex-shrink-0">
             <span class="text-xs font-bold text-primary-700 dark:text-primary-300">{{ initials }}</span>
           </div>
           <div class="hidden md:block text-left">
-            <div class="text-sm font-semibold text-slate-800 dark:text-gray-200 leading-none">
-              {{ auth.user?.firstName }}
-            </div>
-            <div class="text-2xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
-              {{ roleLabel }}
-            </div>
+            <div class="text-sm font-semibold text-slate-800 dark:text-gray-200 leading-none">{{ auth.user?.firstName }}</div>
+            <div class="text-2xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">{{ roleLabel }}</div>
           </div>
-          <ChevronDownIcon class="w-4 h-4 text-gray-400 hidden md:block" />
+          <ChevronDownIcon class="w-3.5 h-3.5 text-gray-400 hidden md:block" />
         </MenuButton>
 
         <Transition
@@ -128,12 +123,10 @@
           leave-to-class="opacity-0 scale-95 translate-y-1"
         >
           <MenuItems class="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-modal py-1.5 z-50 focus:outline-none">
-            <!-- User info header -->
             <div class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 mb-1">
               <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ auth.fullName }}</div>
               <div class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth.user?.email }}</div>
             </div>
-
             <MenuItem v-slot="{ active }">
               <RouterLink
                 to="/settings"
@@ -143,9 +136,7 @@
                 Configuración
               </RouterLink>
             </MenuItem>
-
             <div class="mx-3 my-1 border-t border-gray-100 dark:border-slate-700"></div>
-
             <MenuItem v-slot="{ active }">
               <button
                 @click="handleLogout"
@@ -167,13 +158,13 @@ import { computed, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import {
-  Bars3Icon, MagnifyingGlassIcon, BellIcon, SunIcon, MoonIcon,
+  MagnifyingGlassIcon, BellIcon, SunIcon, MoonIcon,
   ChevronDownIcon, ChevronRightIcon, CogIcon, ArrowRightOnRectangleIcon,
 } from '@heroicons/vue/24/outline'
-import { useUiStore } from '@/stores/ui'
-import { useAuthStore } from '@/stores/auth'
+import { useUiStore }    from '@/stores/ui'
+import { useAuthStore }  from '@/stores/auth'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useWebSocket }  from '@/composables/useWebSocket'
 
 const uiStore   = useUiStore()
 const auth      = useAuthStore()
@@ -187,24 +178,46 @@ const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
 
 watch(searchOpen, async (val) => {
-  if (val) {
-    await nextTick()
-    searchInput.value?.focus()
-  }
+  if (val) { await nextTick(); searchInput.value?.focus() }
 })
 
 const initials = computed(() => {
   const u = auth.user
   if (!u) return '?'
-  return `${(u.firstName?.[0] ?? '')}${(u.lastName?.[0] ?? '')}`.toUpperCase()
+  return `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase()
 })
 
 const roleLabel = computed(() => {
   const roles: Record<string, string> = {
     ADMIN: 'Administrador', MANAGER: 'Gerente',
-    OPERATOR: 'Operador',  VIEWER: 'Visualizador',
+    WAREHOUSE: 'Almacén', SALES: 'Ventas', VIEWER: 'Visualizador',
   }
   return roles[auth.user?.role ?? ''] ?? auth.user?.role ?? ''
+})
+
+// Section context for breadcrumb
+const sectionMeta: Record<string, { label: string; color: string }> = {
+  general:     { label: 'General',     color: 'text-blue-600 dark:text-blue-400'   },
+  inventario:  { label: 'Inventario',  color: 'text-emerald-600 dark:text-emerald-400' },
+  operaciones: { label: 'Operaciones', color: 'text-orange-600 dark:text-orange-400'   },
+  analisis:    { label: 'Análisis',    color: 'text-violet-600 dark:text-violet-400'   },
+  sistema:     { label: 'Sistema',     color: 'text-slate-600 dark:text-slate-400'     },
+}
+
+const currentSection = computed(() => route.meta.section as string | undefined)
+const isHubPage      = computed(() => route.name?.toString().startsWith('hub-'))
+
+const sectionLabel = computed(() => {
+  const s = currentSection.value
+  return s ? sectionMeta[s]?.label ?? '' : ''
+})
+const sectionColor = computed(() => {
+  const s = currentSection.value
+  return s ? sectionMeta[s]?.color ?? '' : ''
+})
+const pageTitle = computed(() => {
+  if (isHubPage.value) return ''
+  return (route.meta.title as string) || ''
 })
 
 function handleLogout() {
@@ -216,7 +229,6 @@ function handleLogout() {
 <style scoped>
 .search-fade-enter-active, .search-fade-leave-active { transition: all 0.15s ease; }
 .search-fade-enter-from, .search-fade-leave-to { opacity: 0; transform: translateY(-6px) scale(0.98); }
-
 .bounce-in-enter-active { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .bounce-in-enter-from   { opacity: 0; transform: scale(0.5); }
 .bounce-in-leave-active { transition: all 0.1s ease; }
