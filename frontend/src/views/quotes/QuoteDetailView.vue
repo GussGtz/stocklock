@@ -28,10 +28,10 @@
           v-if="quote.status === 'DRAFT'"
           class="btn-primary flex items-center gap-2 bg-sky-600 hover:bg-sky-700 focus:ring-sky-500"
           :disabled="actionLoading"
-          @click="doSend"
+          @click="openEmail"
         >
-          <PaperAirplaneIcon class="w-4 h-4" />
-          Enviar al Cliente
+          <EnvelopeIcon class="w-4 h-4" />
+          Enviar por Correo
         </button>
         <button
           v-if="quote.status === 'SENT'"
@@ -213,6 +213,35 @@
       Cotización no encontrada.
     </div>
 
+    <!-- Email Modal -->
+    <AppModal v-model="showEmailModal" title="Enviar cotización por correo" size="md">
+      <div class="space-y-4">
+        <div>
+          <label class="label">Para <span class="text-red-500">*</span></label>
+          <input v-model="emailForm.to" type="email" class="input" placeholder="cliente@empresa.com" />
+        </div>
+        <div>
+          <label class="label">CC <span class="text-slate-400 text-xs">(opcional)</span></label>
+          <input v-model="emailForm.cc" type="email" class="input" placeholder="otro@empresa.com" />
+        </div>
+        <div>
+          <label class="label">Asunto</label>
+          <input v-model="emailForm.subject" type="text" class="input" />
+        </div>
+        <div>
+          <label class="label">Mensaje</label>
+          <textarea v-model="emailForm.message" rows="5" class="input font-sans text-sm leading-relaxed"></textarea>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showEmailModal = false">Cancelar</button>
+        <button class="btn-primary flex items-center gap-2" :disabled="actionLoading" @click="doSendEmail">
+          <EnvelopeIcon class="w-4 h-4" />
+          {{ actionLoading ? 'Enviando...' : 'Enviar correo' }}
+        </button>
+      </template>
+    </AppModal>
+
     <!-- Reject Modal -->
     <AppModal v-model="showRejectModal" title="Rechazar Cotización" size="sm">
       <div class="space-y-4">
@@ -233,13 +262,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
   XCircleIcon,
-  PaperAirplaneIcon,
+  EnvelopeIcon,
   ArrowRightCircleIcon,
   ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline'
@@ -257,11 +286,13 @@ async function generatePdf(q: any) {
   catch { toast.error('Error al generar PDF') }
 }
 
-const loading      = ref(true)
+const loading       = ref(true)
 const actionLoading = ref(false)
-const quote        = ref<any>(null)
+const quote         = ref<any>(null)
 const showRejectModal = ref(false)
+const showEmailModal  = ref(false)
 const rejectReason = ref('')
+const emailForm = reactive({ to: '', cc: '', subject: '', message: '' })
 
 const id = computed(() => route.params.id as string)
 
@@ -281,15 +312,33 @@ onMounted(load)
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 
-async function doSend() {
+function openEmail() {
+  const q = quote.value
+  Object.assign(emailForm, {
+    to:      q.customer?.email ?? '',
+    cc:      '',
+    subject: `Cotización ${q.folio} — CALUTEC`,
+    message: `Estimado(a) ${q.customer?.name ?? 'cliente'},\n\nAdjunto encontrará los detalles de nuestra cotización ${q.folio}.\n\nQuedamos a sus órdenes para cualquier aclaración.\n\nSaludos,\nEquipo CALUTEC`,
+  })
+  showEmailModal.value = true
+}
+
+async function doSendEmail() {
+  if (!emailForm.to) { toast.error('Ingresa el correo del destinatario'); return }
   if (actionLoading.value) return
   actionLoading.value = true
   try {
-    await quotesApi.send(id.value)
-    toast.success('Cotización enviada')
+    await quotesApi.sendEmail(id.value, {
+      to:      emailForm.to,
+      cc:      emailForm.cc     || undefined,
+      subject: emailForm.subject || undefined,
+      message: emailForm.message || undefined,
+    })
+    toast.success('Correo enviado correctamente')
+    showEmailModal.value = false
     await load()
   } catch (e: any) {
-    toast.error(e?.response?.data?.message ?? 'Error al enviar')
+    toast.error(e?.response?.data?.message ?? 'Error al enviar el correo')
   } finally {
     actionLoading.value = false
   }

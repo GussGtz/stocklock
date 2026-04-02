@@ -5,6 +5,7 @@ import {
 import { QuotesService } from './quotes.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
+import { SendQuoteEmailDto } from './dto/send-email-quote.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../users/decorators/roles.decorator';
@@ -44,11 +45,11 @@ export class QuotesController {
     return this.quotesService.update(id, dto);
   }
 
-  @Post(':id/send')
+  @Post(':id/email')
   @Roles('ADMIN', 'MANAGER', 'SALES')
   @HttpCode(HttpStatus.OK)
-  send(@Param('id') id: string) {
-    return this.quotesService.send(id);
+  sendEmail(@Param('id') id: string, @Body() dto: SendQuoteEmailDto) {
+    return this.quotesService.sendEmail(id, dto);
   }
 
   @Post(':id/approve')

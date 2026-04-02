@@ -64,8 +64,8 @@
             <button class="btn-ghost text-xs px-2 py-1 text-slate-500" title="Descargar PDF" @click="downloadPdf(row)">
               <ArrowDownTrayIcon class="w-3.5 h-3.5" />
             </button>
-            <button v-if="row.status === 'DRAFT'" class="btn-ghost text-xs px-2 py-1 text-sky-600" title="Enviar al cliente" @click="doSend(row)">
-              <PaperAirplaneIcon class="w-3.5 h-3.5" />
+            <button v-if="row.status === 'DRAFT'" class="btn-ghost text-xs px-2 py-1 text-sky-600" title="Enviar por correo" @click="openEmail(row)">
+              <EnvelopeIcon class="w-3.5 h-3.5" />
             </button>
             <button v-if="row.status === 'SENT'" class="btn-ghost text-xs px-2 py-1 text-emerald-600" title="Aprobar" @click="doApprove(row)">
               <CheckCircleIcon class="w-3.5 h-3.5" />
@@ -164,6 +164,35 @@
       </template>
     </AppModal>
 
+    <!-- EMAIL MODAL -->
+    <AppModal v-model="showEmail" title="Enviar cotización por correo" size="md">
+      <div class="space-y-4">
+        <div>
+          <label class="label">Para <span class="text-red-500">*</span></label>
+          <input v-model="emailForm.to" type="email" class="input" placeholder="cliente@empresa.com" required />
+        </div>
+        <div>
+          <label class="label">CC <span class="text-slate-400 text-xs">(opcional)</span></label>
+          <input v-model="emailForm.cc" type="email" class="input" placeholder="otro@empresa.com" />
+        </div>
+        <div>
+          <label class="label">Asunto</label>
+          <input v-model="emailForm.subject" type="text" class="input" />
+        </div>
+        <div>
+          <label class="label">Mensaje</label>
+          <textarea v-model="emailForm.message" rows="5" class="input font-sans text-sm leading-relaxed"></textarea>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showEmail = false">Cancelar</button>
+        <button class="btn-primary flex items-center gap-2" :disabled="saving" @click="submitEmail">
+          <EnvelopeIcon class="w-4 h-4" />
+          {{ saving ? 'Enviando...' : 'Enviar correo' }}
+        </button>
+      </template>
+    </AppModal>
+
     <!-- REJECT MODAL -->
     <AppModal v-model="showReject" title="Rechazar Cotización" size="sm">
       <div class="space-y-3">
@@ -188,7 +217,7 @@ import { useToast } from 'vue-toastification'
 import { quotesApi, customersApi, productsApi } from '@/services/api'
 import {
   PlusIcon, EyeIcon, CheckCircleIcon, XCircleIcon, XMarkIcon,
-  PaperAirplaneIcon, ArrowRightCircleIcon, ArrowDownTrayIcon,
+  EnvelopeIcon, ArrowRightCircleIcon, ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -204,8 +233,11 @@ const customers  = ref([])
 const products   = ref([])
 const showCreate = ref(false)
 const showReject = ref(false)
-const rejectingItem = ref(null)
+const showEmail  = ref(false)
+const rejectingItem = ref<any>(null)
+const emailingItem  = ref<any>(null)
 const rejectReason  = ref('')
+const emailForm = reactive({ to: '', cc: '', subject: '', message: '' })
 
 const pagination = reactive({ page: 1, limit: 20, total: 0 })
 const filters    = reactive({ status: '', customerId: '', from: '', to: '' })
@@ -294,9 +326,33 @@ async function downloadPdf(row: any) {
   } catch { toast.error('Error al generar PDF') }
 }
 
-async function doSend(row) {
-  try { await quotesApi.send(row.id); toast.success('Cotización enviada al cliente'); fetchQuotes() }
-  catch (err) { toast.error(err?.response?.data?.message || 'Error al enviar') }
+function openEmail(row: any) {
+  emailingItem.value = row
+  const customerEmail = row.customer?.email ?? ''
+  Object.assign(emailForm, {
+    to:      customerEmail,
+    cc:      '',
+    subject: `Cotización ${row.folio} — CALUTEC`,
+    message: `Estimado(a) ${row.customer?.name ?? 'cliente'},\n\nAdjunto encontrará los detalles de nuestra cotización ${row.folio}.\n\nQuedamos a sus órdenes para cualquier aclaración.\n\nSaludos,\nEquipo CALUTEC`,
+  })
+  showEmail.value = true
+}
+
+async function submitEmail() {
+  if (!emailForm.to) { toast.warning('Ingresa el correo del destinatario'); return }
+  saving.value = true
+  try {
+    await quotesApi.sendEmail(emailingItem.value.id, {
+      to:      emailForm.to,
+      cc:      emailForm.cc  || undefined,
+      subject: emailForm.subject || undefined,
+      message: emailForm.message || undefined,
+    })
+    toast.success('Correo enviado correctamente')
+    showEmail.value = false
+    fetchQuotes()
+  } catch (err: any) { toast.error(err?.response?.data?.message || 'Error al enviar el correo') }
+  finally { saving.value = false }
 }
 async function doApprove(row) {
   try { await quotesApi.approve(row.id); toast.success('Cotización aprobada'); fetchQuotes() }
