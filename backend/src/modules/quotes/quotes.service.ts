@@ -287,11 +287,13 @@ export class QuotesService {
   }
 
   async sendEmail(id: string, dto: SendQuoteEmailDto) {
+    this.logger.log(`sendEmail called for quote ${id} → to: ${dto.to}`);
     const quote = await this.findOne(id);
     if (quote.status !== QuoteStatus.DRAFT) {
       throw new BadRequestException(`Solo cotizaciones en borrador se pueden enviar. Estado actual: ${quote.status}`);
     }
 
+    this.logger.log(`SMTP config — HOST: ${process.env.SMTP_HOST ?? 'NOT SET'}, USER: ${process.env.SMTP_USER ?? 'NOT SET'}`);
     const transport = this.getTransport();
     const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
     const subject = dto.subject ?? `Cotización ${quote.folio} — CALUTEC`;
