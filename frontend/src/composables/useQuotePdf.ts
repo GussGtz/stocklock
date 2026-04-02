@@ -257,43 +257,26 @@ async function buildDoc(quote: any): Promise<jsPDF> {
     tc(doc, COMPANY.tableTitle, ML + CW / 2, y + titleH / 2, 8.5, true, WHITE)
     y += titleH
 
-    // ── 3b. Nested column headers ─────────────────────────────────────────
-    //  ┌──────────┬──────────────────────────────┬────────┬──────────────────────────────┐
-    //  │  CLAVE   │          CONCEPTO            │ UNIDAD │       PRESUPUESTO            │
-    //  │          │                              │        ├──────────┬──────────┬────────┤
-    //  │          │                              │        │ CANTIDAD │   P.U.   │IMPORTE │
-    //  └──────────┴──────────────────────────────┴────────┴──────────┴──────────┴────────┘
-    const rowH2a = 5.5  // PRESUPUESTO label row height
-    const rowH2b = 5.5  // CANTIDAD/P.U./IMPORTE row height
-    const rowH2  = rowH2a + rowH2b
+    // ── 3b. Column headers (single row) ──────────────────────────────────────
+    const rowH2 = 7
 
-    // CLAVE (full rowH2 height, vertically centered)
     cell(doc, COL.clave.x,    y, COL.clave.w,    rowH2, LGRAY)
     tc(doc, 'CLAVE',    COL.clave.x    + COL.clave.w    / 2, y + rowH2 / 2, 7, true, BLACK)
 
-    // CONCEPTO
     cell(doc, COL.concepto.x, y, COL.concepto.w, rowH2, LGRAY)
     tc(doc, 'CONCEPTO', COL.concepto.x + COL.concepto.w / 2, y + rowH2 / 2, 7, true, BLACK)
 
-    // UNIDAD
     cell(doc, COL.unidad.x,   y, COL.unidad.w,   rowH2, LGRAY)
     tc(doc, 'UNIDAD',   COL.unidad.x   + COL.unidad.w   / 2, y + rowH2 / 2, 7, true, BLACK)
 
-    // PRESUPUESTO spanning header (top row)
-    const rightColsW = COL.cantidad.w + COL.pu.w + COL.importe.w
-    cell(doc, COL.cantidad.x, y, rightColsW, rowH2a, MGRAY)
-    tc(doc, 'PRESUPUESTO', COL.cantidad.x + rightColsW / 2, y + rowH2a / 2, 7, true, BLACK)
+    cell(doc, COL.cantidad.x, y, COL.cantidad.w, rowH2, LGRAY)
+    tc(doc, 'CANTIDAD', COL.cantidad.x + COL.cantidad.w / 2, y + rowH2 / 2, 7, true, BLACK)
 
-    // CANTIDAD | P.U. | IMPORTE (bottom row under PRESUPUESTO)
-    const y2b = y + rowH2a
-    cell(doc, COL.cantidad.x, y2b, COL.cantidad.w, rowH2b, LGRAY)
-    tc(doc, 'CANTIDAD', COL.cantidad.x + COL.cantidad.w / 2, y2b + rowH2b / 2, 6.5, true, BLACK)
+    cell(doc, COL.pu.x,       y, COL.pu.w,       rowH2, LGRAY)
+    tc(doc, 'P.U.',     COL.pu.x       + COL.pu.w       / 2, y + rowH2 / 2, 7, true, BLACK)
 
-    cell(doc, COL.pu.x, y2b, COL.pu.w, rowH2b, LGRAY)
-    tc(doc, 'P.U.',     COL.pu.x       + COL.pu.w       / 2, y2b + rowH2b / 2, 6.5, true, BLACK)
-
-    cell(doc, COL.importe.x, y2b, COL.importe.w, rowH2b, LGRAY)
-    tc(doc, 'IMPORTE',  COL.importe.x  + COL.importe.w  / 2, y2b + rowH2b / 2, 6.5, true, BLACK)
+    cell(doc, COL.importe.x,  y, COL.importe.w,  rowH2, LGRAY)
+    tc(doc, 'IMPORTE',  COL.importe.x  + COL.importe.w  / 2, y + rowH2 / 2, 7, true, BLACK)
 
     y += rowH2
 
