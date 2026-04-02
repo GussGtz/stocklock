@@ -26,11 +26,22 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string) {
     loading.value = true
     try {
-      const { data } = await authApi.login({ email, password })
-      token.value = data.accessToken
-      user.value = data.user
-      localStorage.setItem('stocklock_token', data.accessToken)
-      return data
+      let res
+      try {
+        res = await authApi.login({ email, password })
+      } catch (err: any) {
+        // If DB is waking up (503), wait 5s and retry once
+        if (err?.response?.status === 503) {
+          await new Promise(r => setTimeout(r, 5000))
+          res = await authApi.login({ email, password })
+        } else {
+          throw err
+        }
+      }
+      token.value = res.data.accessToken
+      user.value = res.data.user
+      localStorage.setItem('stocklock_token', res.data.accessToken)
+      return res.data
     } finally {
       loading.value = false
     }
