@@ -10,7 +10,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.$connect();
+    // Don't force $connect() at startup — Prisma connects lazily on first query.
+    // Forcing it here crashes the app if Neon's free tier is paused at deploy time.
   }
 
   async onModuleDestroy() {
