@@ -11,6 +11,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
+    bodyParser: false,  // disable built-in so we can set a custom limit
   });
 
   // Body size limit (PDF base64 can be several MB)
