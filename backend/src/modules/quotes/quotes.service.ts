@@ -5,7 +5,6 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
@@ -37,22 +36,42 @@ export class QuotesService {
 
   constructor(private prisma: PrismaService) {}
 
-  // ── Email transport (lazy-initialized) ─────────────────────────────────────
-  private getTransport() {
-    const host = process.env.SMTP_HOST;
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    if (!host || !user || !pass) {
-      throw new InternalServerErrorException(
-        'Email not configured. Set SMTP_HOST, SMTP_USER and SMTP_PASS env vars.',
-      );
+  // ── Brevo HTTP API email sender ─────────────────────────────────────────────
+  private async sendBrevoEmail(payload: {
+    to: string;
+    cc?: string;
+    subject: string;
+    html: string;
+    attachment?: { name: string; content: string };
+  }) {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.SMTP_FROM_EMAIL ?? 'gutierrezgustavocanul@gmail.com';
+    const senderName  = process.env.SMTP_FROM_NAME  ?? 'CALUTEC';
+
+    if (!apiKey) {
+      throw new InternalServerErrorException('Email no configurado. Agrega BREVO_API_KEY en las variables de entorno.');
     }
-    return nodemailer.createTransport({
-      host,
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: { user, pass },
+
+    const body: any = {
+      sender:      { name: senderName, email: senderEmail },
+      to:          [{ email: payload.to }],
+      subject:     payload.subject,
+      htmlContent: payload.html,
+    };
+
+    if (payload.cc) body.cc = [{ email: payload.cc }];
+    if (payload.attachment) body.attachment = [payload.attachment];
+
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method:  'POST',
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`Brevo API error ${res.status}: ${detail}`);
+    }
   }
 
   private buildEmailHtml(quote: any, message: string): string {
@@ -293,29 +312,19 @@ export class QuotesService {
       throw new BadRequestException(`Solo cotizaciones en borrador se pueden enviar. Estado actual: ${quote.status}`);
     }
 
-    this.logger.log(`SMTP config — HOST: ${process.env.SMTP_HOST ?? 'NOT SET'}, USER: ${process.env.SMTP_USER ?? 'NOT SET'}, PASS set: ${!!process.env.SMTP_PASS}`);
-    const transport = this.getTransport();
-    this.logger.log('Transport created OK');
-
-    const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
     const subject = dto.subject ?? `Cotización ${quote.folio} — CALUTEC`;
     const message = dto.message?.trim() ||
       `Estimado(a) ${quote.customer?.name ?? 'cliente'},\n\nAdjunto encontrará los detalles de nuestra cotización ${quote.folio}.\n\nQuedamos a sus órdenes para cualquier aclaración.`;
 
-    const attachments = dto.pdfBase64
-      ? [{ filename: `${quote.folio}.pdf`, content: Buffer.from(dto.pdfBase64, 'base64'), contentType: 'application/pdf' }]
-      : [];
-    this.logger.log(`Attachments: ${attachments.length}, from: ${from}`);
-
     try {
-      this.logger.log('Calling sendMail...');
-      await transport.sendMail({
-        from,
-        to: dto.to,
-        cc: dto.cc || undefined,
+      await this.sendBrevoEmail({
+        to:      dto.to,
+        cc:      dto.cc || undefined,
         subject,
-        html: this.buildEmailHtml(quote, message),
-        attachments,
+        html:    this.buildEmailHtml(quote, message),
+        attachment: dto.pdfBase64
+          ? { name: `${quote.folio}.pdf`, content: dto.pdfBase64 }
+          : undefined,
       });
       this.logger.log(`Quote email sent: ${quote.folio} → ${dto.to}`);
     } catch (err) {
