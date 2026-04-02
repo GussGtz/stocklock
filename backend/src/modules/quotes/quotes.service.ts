@@ -293,8 +293,10 @@ export class QuotesService {
       throw new BadRequestException(`Solo cotizaciones en borrador se pueden enviar. Estado actual: ${quote.status}`);
     }
 
-    this.logger.log(`SMTP config — HOST: ${process.env.SMTP_HOST ?? 'NOT SET'}, USER: ${process.env.SMTP_USER ?? 'NOT SET'}`);
+    this.logger.log(`SMTP config — HOST: ${process.env.SMTP_HOST ?? 'NOT SET'}, USER: ${process.env.SMTP_USER ?? 'NOT SET'}, PASS set: ${!!process.env.SMTP_PASS}`);
     const transport = this.getTransport();
+    this.logger.log('Transport created OK');
+
     const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
     const subject = dto.subject ?? `Cotización ${quote.folio} — CALUTEC`;
     const message = dto.message?.trim() ||
@@ -303,8 +305,10 @@ export class QuotesService {
     const attachments = dto.pdfBase64
       ? [{ filename: `${quote.folio}.pdf`, content: Buffer.from(dto.pdfBase64, 'base64'), contentType: 'application/pdf' }]
       : [];
+    this.logger.log(`Attachments: ${attachments.length}, from: ${from}`);
 
     try {
+      this.logger.log('Calling sendMail...');
       await transport.sendMail({
         from,
         to: dto.to,
@@ -315,7 +319,7 @@ export class QuotesService {
       });
       this.logger.log(`Quote email sent: ${quote.folio} → ${dto.to}`);
     } catch (err) {
-      this.logger.error(`Failed to send quote email: ${err.message}`);
+      this.logger.error(`Failed to send quote email: ${err.message}`, err.stack);
       throw new InternalServerErrorException(`Error al enviar el correo: ${err.message}`);
     }
 
