@@ -21,7 +21,7 @@ export class AuthService {
     try {
       user = await this.prisma.user.findUnique({ where: { email } });
     } catch (err) {
-      this.logger.warn(`DB error during login for ${email}: ${err.message}`);
+      this.logger.error(`[LOGIN FAIL] type=${err.constructor?.name} email=${email} msg=${err.message}`);
       throw new ServiceUnavailableException('Servicio temporalmente no disponible, intente de nuevo en unos segundos');
     }
     if (!user || !user.isActive) throw new UnauthorizedException('Credenciales inválidas');
