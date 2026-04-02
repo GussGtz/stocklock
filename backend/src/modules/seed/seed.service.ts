@@ -17,22 +17,27 @@ export class SeedService implements OnApplicationBootstrap {
   constructor(private prisma: PrismaService) {}
 
   async onApplicationBootstrap() {
-    for (const u of DEMO_USERS) {
-      const exists = await this.prisma.user.findUnique({ where: { email: u.email } });
-      if (!exists) {
-        const hashed = await bcryptjs.hash(u.password, 10);
-        await this.prisma.user.create({
-          data: {
-            email: u.email,
-            firstName: u.firstName,
-            lastName: u.lastName,
-            role: u.role,
-            password: hashed,
-            isActive: true,
-          },
-        });
-        this.logger.log(`Demo user created: ${u.email} (${u.role})`);
+    try {
+      for (const u of DEMO_USERS) {
+        const exists = await this.prisma.user.findUnique({ where: { email: u.email } });
+        if (!exists) {
+          const hashed = await bcryptjs.hash(u.password, 10);
+          await this.prisma.user.create({
+            data: {
+              email: u.email,
+              firstName: u.firstName,
+              lastName: u.lastName,
+              role: u.role,
+              password: hashed,
+              isActive: true,
+            },
+          });
+          this.logger.log(`Demo user created: ${u.email} (${u.role})`);
+        }
       }
+    } catch (err) {
+      // Non-fatal: DB may be waking up (Neon free tier). App starts anyway.
+      this.logger.warn(`Seed skipped — DB not ready at startup: ${err.message}`);
     }
   }
 }
