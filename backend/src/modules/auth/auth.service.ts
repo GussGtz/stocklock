@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcryptjs from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +8,8 @@ import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
@@ -15,7 +17,13 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    let user: any;
+    try {
+      user = await this.prisma.user.findUnique({ where: { email } });
+    } catch (err) {
+      this.logger.warn(`DB error during login for ${email}: ${err.message}`);
+      throw new ServiceUnavailableException('Servicio temporalmente no disponible, intente de nuevo en unos segundos');
+    }
     if (!user || !user.isActive) throw new UnauthorizedException('Credenciales inválidas');
     const valid = await bcryptjs.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
