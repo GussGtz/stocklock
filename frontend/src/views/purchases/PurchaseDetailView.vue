@@ -16,9 +16,9 @@
       </div>
       <div class="flex gap-2">
         <button
-          v-if="['CONFIRMED', 'PARTIAL'].includes(purchase?.status)"
+          v-if="!['RECEIVED', 'CANCELLED'].includes(purchase?.status)"
           class="btn-primary flex items-center gap-2"
-          @click="showReceiveModal = true"
+          @click="openReceiveModal()"
         >
           <InboxArrowDownIcon class="w-4 h-4" />
           Recibir Material
@@ -58,11 +58,11 @@
           <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Información del Proveedor</h3>
           <div class="grid grid-cols-2 gap-y-2 text-sm">
             <span class="text-gray-500 dark:text-gray-400">Proveedor</span>
-            <span class="font-medium">{{ purchase.supplierName }}</span>
+            <span class="font-medium">{{ purchase.supplier?.name || '—' }}</span>
             <span class="text-gray-500 dark:text-gray-400">RFC</span>
-            <span>{{ purchase.supplierRfc || '—' }}</span>
+            <span>{{ purchase.supplier?.rfc || '—' }}</span>
             <span class="text-gray-500 dark:text-gray-400">Contacto</span>
-            <span>{{ purchase.supplierContact || '—' }}</span>
+            <span>{{ purchase.supplier?.contactName || '—' }}</span>
             <span class="text-gray-500 dark:text-gray-400">Notas</span>
             <span>{{ purchase.notes || '—' }}</span>
           </div>
@@ -103,7 +103,7 @@
         <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h3 class="font-semibold text-gray-900 dark:text-white">Artículos</h3>
         </div>
-        <DataTable :columns="itemColumns" :data="purchase.items" :loading="false">
+        <DataTable :columns="itemColumns" :data="mappedItems" :loading="false">
           <template #cell-subtotal="{ row }">
             {{ formatCurrency((row.orderedQty || 0) * (row.unitCost || 0)) }}
           </template>
@@ -175,7 +175,7 @@
 
 <script setup>
 import { purchasesApi, warehousesApi } from '@/services/api'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { ArrowLeftIcon, InboxArrowDownIcon, XCircleIcon } from '@heroicons/vue/24/outline'
@@ -195,6 +195,15 @@ const showReceiveModal = ref(false)
 const showCancelConfirm = ref(false)
 
 const receiveForm = reactive({ warehouseId: '', items: [] })
+
+// Flatten nested product fields for the DataTable
+const mappedItems = computed(() =>
+  (purchase.value?.items || []).map(i => ({
+    ...i,
+    productCode: i.product?.code || '—',
+    productName: i.product?.name || '—',
+  }))
+)
 
 const itemColumns = [
   { key: 'productCode', label: 'Código' },
@@ -226,14 +235,14 @@ function formatCurrency(v) {
 
 function openReceiveModal() {
   if (!purchase.value) return
-  receiveForm.warehouseId = warehouses.value[0]?.id || ''
+  receiveForm.warehouseId = warehouses.value.find(w => w.isDefault)?.id || warehouses.value[0]?.id || ''
   receiveForm.items = purchase.value.items.map(i => ({
     itemId: i.id,
-    productName: i.productName,
-    orderedQty: i.orderedQty,
-    receivedQty: i.orderedQty - (i.receivedQty || 0),
+    productName: i.product?.name || '—',
+    orderedQty: Number(i.orderedQty),
+    receivedQty: Number(i.orderedQty) - Number(i.receivedQty || 0),
     lotNumber: '',
-  }))
+  })).filter(i => i.receivedQty > 0)
   showReceiveModal.value = true
 }
 

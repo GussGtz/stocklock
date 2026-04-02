@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  Request,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -52,8 +53,8 @@ export class ProductsController {
 
   @Post()
   @Roles('ADMIN', 'MANAGER')
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  create(@Body() dto: CreateProductDto, @Request() req: any) {
+    return this.productsService.create(dto, req.user.id);
   }
 
   @Patch(':id')

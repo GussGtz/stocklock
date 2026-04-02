@@ -4,8 +4,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { MovementType } from '@prisma/client';
 
 export interface FindAllProductsQuery {
   page?: number;
@@ -17,7 +19,10 @@ export interface FindAllProductsQuery {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private inventoryService: InventoryService,
+  ) {}
 
   async findAll(query: FindAllProductsQuery) {
     const page = Number(query.page) || 1;
@@ -89,7 +94,7 @@ export class ProductsService {
     return product;
   }
 
-  async create(dto: CreateProductDto) {
+  async create(dto: CreateProductDto, userId?: string) {
     const existing = await this.prisma.product.findUnique({
       where: { code: dto.code },
     });
@@ -112,7 +117,7 @@ export class ProductsService {
     }
 
     const { initialStock, ...productData } = dto;
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         ...productData,
         costPrice: productData.costPrice ?? 0,
@@ -125,6 +130,31 @@ export class ProductsService {
         category: { select: { id: true, name: true, color: true } },
       },
     });
+
+    // If initialStock > 0, create an ENTRY movement so the InventoryItem
+    // exists in the default warehouse and stock movements work correctly.
+    if (initialStock && initialStock > 0 && userId) {
+      const defaultWarehouse = await this.prisma.warehouse.findFirst({
+        where: { isDefault: true, isActive: true },
+      });
+      if (defaultWarehouse) {
+        await this.inventoryService.createMovement(
+          {
+            type: MovementType.ENTRY,
+            productId: product.id,
+            warehouseId: defaultWarehouse.id,
+            quantity: initialStock,
+            unitCost: Number(productData.costPrice ?? 0),
+            referenceType: 'INITIAL_STOCK',
+            referenceId: product.id,
+            notes: `Stock inicial al crear producto`,
+          },
+          userId,
+        );
+      }
+    }
+
+    return product;
   }
 
   async update(id: string, dto: UpdateProductDto) {

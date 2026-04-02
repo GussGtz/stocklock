@@ -58,8 +58,9 @@
               <EyeIcon class="w-3.5 h-3.5" />
             </router-link>
             <button
-              v-if="['CONFIRMED', 'PARTIAL'].includes(row.status)"
+              v-if="!['RECEIVED', 'CANCELLED'].includes(row.status)"
               class="btn-ghost text-xs px-2 py-1 text-green-600"
+              title="Recibir material"
               @click="openReceive(row)"
             >
               <InboxArrowDownIcon class="w-3.5 h-3.5" />
