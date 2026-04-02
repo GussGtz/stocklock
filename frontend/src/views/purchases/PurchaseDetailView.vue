@@ -255,7 +255,11 @@ async function submitReceive() {
   try {
     await purchasesApi.receive(route.params.id, {
       warehouseId: receiveForm.warehouseId,
-      items: receiveForm.items,
+      items: receiveForm.items.map(({ itemId, receivedQty, lotNumber }) => ({
+        itemId,
+        receivedQty: Number(receivedQty),
+        ...(lotNumber ? { lotNumber } : {}),
+      })),
     })
     toast.success('Material recibido correctamente')
     showReceiveModal.value = false
