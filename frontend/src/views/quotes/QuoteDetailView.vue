@@ -227,7 +227,7 @@
       <div class="space-y-4">
         <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
           <ChatBubbleLeftIcon class="w-4 h-4 mt-0.5 shrink-0" />
-          <span>El PDF se descargará automáticamente. Adjúntalo en WhatsApp y haz clic en <strong>Enviar</strong>.</span>
+          <span>Se incluirá un link de descarga del PDF en el mensaje. El cliente lo abre con un toque.</span>
         </div>
         <div>
           <label class="label">Teléfono <span class="text-red-500">*</span></label>
@@ -360,8 +360,13 @@ function openWA() {
 
 async function doSendWA() {
   if (!waForm.phone) { toast.error('Ingresa el número de WhatsApp'); return }
-  try { await _generatePdf(quote.value) } catch { /* non-fatal */ }
-  sendWhatsApp(waForm.phone, waForm.message)
+  let message = waForm.message
+  try {
+    const base64 = await _generatePdfBase64(quote.value)
+    const res = await quotesApi.uploadPdf(quote.value.id, base64)
+    message = message + `\n\n📄 *PDF:* ${res.data.url}`
+  } catch { /* non-fatal */ }
+  sendWhatsApp(waForm.phone, message)
   showWAModal.value = false
 }
 

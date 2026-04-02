@@ -115,15 +115,16 @@ export const salesApi = {
 }
 
 export const quotesApi = {
-  list:      (params?: any)        => api.get('/quotes', { params }),
-  get:       (id: string)          => api.get(`/quotes/${id}`),
-  create:    (data: any)           => api.post('/quotes', data),
-  update:    (id: string, data: any) => api.patch(`/quotes/${id}`, data),
-  sendEmail: (id: string, data: { to: string; cc?: string; subject?: string; message?: string }) => api.post(`/quotes/${id}/email`, data),
-  approve:   (id: string)          => api.post(`/quotes/${id}/approve`),
-  reject:    (id: string, reason?: string) => api.post(`/quotes/${id}/reject`, { reason }),
-  convert:   (id: string)          => api.post(`/quotes/${id}/convert`),
-  expire:    (id: string)          => api.post(`/quotes/${id}/expire`),
+  list:       (params?: any)        => api.get('/quotes', { params }),
+  get:        (id: string)          => api.get(`/quotes/${id}`),
+  create:     (data: any)           => api.post('/quotes', data),
+  update:     (id: string, data: any) => api.patch(`/quotes/${id}`, data),
+  sendEmail:  (id: string, data: { to: string; cc?: string; subject?: string; message?: string; pdfBase64?: string }) => api.post(`/quotes/${id}/email`, data),
+  uploadPdf:  (id: string, pdfBase64: string) => api.post(`/quotes/${id}/pdf-upload`, { pdfBase64 }),
+  approve:    (id: string)          => api.post(`/quotes/${id}/approve`),
+  reject:     (id: string, reason?: string) => api.post(`/quotes/${id}/reject`, { reason }),
+  convert:    (id: string)          => api.post(`/quotes/${id}/convert`),
+  expire:     (id: string)          => api.post(`/quotes/${id}/expire`),
 }
 
 export const productionApi = {

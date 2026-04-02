@@ -1,7 +1,8 @@
 import {
   Controller, Get, Post, Patch, Param, Body,
-  Query, Request, UseGuards, HttpCode, HttpStatus,
+  Query, Request, UseGuards, HttpCode, HttpStatus, Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { QuotesService } from './quotes.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
@@ -78,5 +79,29 @@ export class QuotesController {
   @HttpCode(HttpStatus.OK)
   expire(@Param('id') id: string) {
     return this.quotesService.expire(id);
+  }
+
+  @Post(':id/pdf-upload')
+  @Roles('ADMIN', 'MANAGER', 'SALES')
+  @HttpCode(HttpStatus.OK)
+  async uploadPdf(@Param('id') id: string, @Body('pdfBase64') pdfBase64: string) {
+    const token = await this.quotesService.storePdf(id, pdfBase64);
+    const base = process.env.BACKEND_URL ?? 'https://stocklock-backend-6wwl.onrender.com';
+    return { url: `${base}/api/v1/quotes/pdf/${token}` };
+  }
+
+}
+
+// Public controller — no auth guards — for PDF download links sent via WhatsApp
+@Controller('quotes')
+export class QuotesPdfController {
+  constructor(private readonly quotesService: QuotesService) {}
+
+  @Get('pdf/:token')
+  async servePdf(@Param('token') token: string, @Res() res: Response) {
+    const { buffer, folio } = this.quotesService.getPdfBuffer(token);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${folio}.pdf"`);
+    res.send(buffer);
   }
 }

@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
@@ -33,8 +34,34 @@ const QUOTE_INCLUDE = {
 @Injectable()
 export class QuotesService {
   private readonly logger = new Logger(QuotesService.name);
+  private readonly pdfCache = new Map<string, { buffer: Buffer; expires: number; folio: string }>();
 
   constructor(private prisma: PrismaService) {}
+
+  // ── Temp PDF storage (for WhatsApp sharing) ─────────────────────────────────
+  async storePdf(id: string, pdfBase64: string): Promise<string> {
+    const quote = await this.findOne(id);
+    const token = randomUUID();
+    this.pdfCache.set(token, {
+      buffer:  Buffer.from(pdfBase64, 'base64'),
+      expires: Date.now() + 2 * 60 * 60 * 1000, // 2 hours
+      folio:   quote.folio,
+    });
+    // Cleanup expired entries lazily
+    for (const [k, v] of this.pdfCache) {
+      if (v.expires < Date.now()) this.pdfCache.delete(k);
+    }
+    return token;
+  }
+
+  getPdfBuffer(token: string): { buffer: Buffer; folio: string } {
+    const entry = this.pdfCache.get(token);
+    if (!entry || entry.expires < Date.now()) {
+      this.pdfCache.delete(token);
+      throw new NotFoundException('El link del PDF ha expirado o no existe');
+    }
+    return { buffer: entry.buffer, folio: entry.folio };
+  }
 
   // ── Brevo HTTP API email sender ─────────────────────────────────────────────
   private async sendBrevoEmail(payload: {
