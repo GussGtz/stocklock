@@ -5,7 +5,7 @@
  */
 
 const INTERVAL = 9 * 60 * 1000  // 9 minutes — safely under the 15-min sleep threshold
-const HEALTH_URL = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/health`
+const HEALTH_URL = `${import.meta.env.VITE_API_URL ?? '/api/v1'}/health`
 
 let timer: ReturnType<typeof setInterval> | null = null
 

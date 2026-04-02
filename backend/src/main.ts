@@ -13,6 +13,10 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
+  // Body size limit (PDF base64 can be several MB)
+  app.use(require('express').json({ limit: '10mb' }));
+  app.use(require('express').urlencoded({ extended: true, limit: '10mb' }));
+
   // Security
   app.use(helmet());
   app.use(compression());
