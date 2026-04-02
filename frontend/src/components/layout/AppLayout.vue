@@ -20,11 +20,18 @@ import AppHeader  from './AppHeader.vue'
 import AppTopNav  from './AppTopNav.vue'
 import { useAlertsStore }    from '@/stores/alerts'
 import { useInventoryStore } from '@/stores/inventory'
+import { useKeepAlive }      from '@/composables/useKeepAlive'
 
 const alerts    = useAlertsStore()
 const inventory = useInventoryStore()
+const { start: startKeepAlive, stop: stopKeepAlive } = useKeepAlive()
 
 onMounted(async () => {
   await Promise.all([alerts.fetchAlerts(), inventory.fetchSummary()])
+  startKeepAlive()
+})
+
+onUnmounted(() => {
+  stopKeepAlive()
 })
 </script>

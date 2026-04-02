@@ -23,7 +23,12 @@ async function bootstrap() {
     .map(o => o.trim());
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      if (
+        !origin ||
+        allowedOrigins.some(o => origin.startsWith(o)) ||
+        /^https?:\/\/[^.]+\.onrender\.com$/.test(origin) ||
+        origin === 'http://localhost:5173'
+      ) {
         callback(null, true);
       } else {
         callback(null, false);
