@@ -114,6 +114,18 @@ export const salesApi = {
   pdf: (id: string) => api.get(`/sales/${id}/pdf`, { responseType: 'blob' }),
 }
 
+export const quotesApi = {
+  list:      (params?: any)        => api.get('/quotes', { params }),
+  get:       (id: string)          => api.get(`/quotes/${id}`),
+  create:    (data: any)           => api.post('/quotes', data),
+  update:    (id: string, data: any) => api.patch(`/quotes/${id}`, data),
+  send:      (id: string)          => api.post(`/quotes/${id}/send`),
+  approve:   (id: string)          => api.post(`/quotes/${id}/approve`),
+  reject:    (id: string, reason?: string) => api.post(`/quotes/${id}/reject`, { reason }),
+  convert:   (id: string)          => api.post(`/quotes/${id}/convert`),
+  expire:    (id: string)          => api.post(`/quotes/${id}/expire`),
+}
+
 export const productionApi = {
   list: (params?: any) => api.get('/production', { params }),
   get: (id: string) => api.get(`/production/${id}`),

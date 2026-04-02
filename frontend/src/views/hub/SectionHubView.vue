@@ -87,6 +87,7 @@ import {
   SwatchIcon, BeakerIcon, ShoppingCartIcon, TruckIcon,
   CurrencyDollarIcon, UsersIcon, WrenchScrewdriverIcon,
   ChartBarIcon, CogIcon, ArrowRightIcon, PlusIcon,
+  DocumentTextIcon,
 } from '@heroicons/vue/24/outline'
 
 const route        = useRoute()
@@ -254,6 +255,15 @@ const allSections: Record<string, SectionConfig> = {
         actionLabel: 'Ver Clientes',
         createTo: '/customers?new=1',
         color: '#EC4899',
+      },
+      {
+        icon: DocumentTextIcon,
+        label: 'Cotizaciones',
+        description: 'Presupuestos y propuestas comerciales a clientes',
+        to: '/quotes',
+        actionLabel: 'Ver Cotizaciones',
+        createTo: '/quotes?new=1',
+        color: '#6366F1',
       },
       {
         icon: WrenchScrewdriverIcon,

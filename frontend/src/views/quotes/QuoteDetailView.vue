@@ -1,0 +1,405 @@
+<template>
+  <div class="space-y-6">
+    <!-- Back + Header -->
+    <div class="page-header">
+      <div class="flex items-center gap-4">
+        <button class="btn-ghost p-2 rounded-lg" @click="$router.push('/quotes')">
+          <ArrowLeftIcon class="w-5 h-5" />
+        </button>
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="page-title">{{ quote?.folio || 'Cargando...' }}</h1>
+            <span v-if="quote" :class="statusBadge(quote.status)">{{ statusLabel(quote.status) }}</span>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Cotización / Presupuesto comercial</p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex gap-2 flex-wrap" v-if="quote">
+        <button
+          class="btn-secondary flex items-center gap-2"
+          @click="generatePdf(quote)"
+        >
+          <ArrowDownTrayIcon class="w-4 h-4" />
+          Descargar PDF
+        </button>
+        <button
+          v-if="quote.status === 'DRAFT'"
+          class="btn-primary flex items-center gap-2 bg-sky-600 hover:bg-sky-700 focus:ring-sky-500"
+          :disabled="actionLoading"
+          @click="doSend"
+        >
+          <PaperAirplaneIcon class="w-4 h-4" />
+          Enviar al Cliente
+        </button>
+        <button
+          v-if="quote.status === 'SENT'"
+          class="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"
+          :disabled="actionLoading"
+          @click="doApprove"
+        >
+          <CheckCircleIcon class="w-4 h-4" />
+          Aprobar
+        </button>
+        <button
+          v-if="quote.status === 'APPROVED'"
+          class="btn-primary flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
+          :disabled="actionLoading"
+          @click="doConvert"
+        >
+          <ArrowRightCircleIcon class="w-4 h-4" />
+          Convertir a Venta
+        </button>
+        <button
+          v-if="['SENT', 'APPROVED'].includes(quote.status)"
+          class="btn-danger flex items-center gap-2"
+          @click="showRejectModal = true"
+        >
+          <XCircleIcon class="w-4 h-4" />
+          Rechazar
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-pulse">
+      <div class="card lg:col-span-2"><div class="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div></div>
+      <div class="card"><div class="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div></div>
+    </div>
+
+    <template v-else-if="quote">
+      <!-- Info cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Customer info -->
+        <div class="card lg:col-span-2">
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Información del Cliente</h3>
+          <div class="grid grid-cols-2 gap-y-2 text-sm">
+            <span class="text-gray-500 dark:text-gray-400">Cliente</span>
+            <span class="font-medium">{{ quote.customer?.name ?? '—' }}</span>
+            <span class="text-gray-500 dark:text-gray-400">RFC</span>
+            <span>{{ quote.customer?.rfc ?? '—' }}</span>
+            <span class="text-gray-500 dark:text-gray-400">Contacto</span>
+            <span>{{ quote.customer?.contactName ?? '—' }}</span>
+            <span class="text-gray-500 dark:text-gray-400">Teléfono</span>
+            <span>{{ quote.customer?.phone ?? '—' }}</span>
+            <span class="text-gray-500 dark:text-gray-400">Email</span>
+            <span>{{ quote.customer?.email ?? '—' }}</span>
+            <span class="text-gray-500 dark:text-gray-400">Elaboró</span>
+            <span>{{ quote.user ? `${quote.user.firstName} ${quote.user.lastName}` : '—' }}</span>
+            <span class="text-gray-500 dark:text-gray-400">Notas</span>
+            <span>{{ quote.notes || '—' }}</span>
+          </div>
+        </div>
+
+        <!-- Dates + Totals -->
+        <div class="card">
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Fechas y Totales</h3>
+          <div class="space-y-2 text-sm mb-4">
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Creada</span>
+              <span>{{ formatDate(quote.createdAt) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Vigencia</span>
+              <span :class="isExpiringSoon(quote.validUntil) ? 'text-amber-500 font-semibold' : ''">
+                {{ formatDate(quote.validUntil) }}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Moneda</span>
+              <span>{{ quote.currency }} <span v-if="quote.currency !== 'MXN'" class="text-xs text-gray-400">(TC: {{ quote.exchangeRate }})</span></span>
+            </div>
+          </div>
+          <div class="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-1 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Subtotal</span>
+              <span>{{ formatCurrency(quote.subtotal) }}</span>
+            </div>
+            <div class="flex justify-between" v-if="Number(quote.discount) > 0">
+              <span class="text-gray-500 dark:text-gray-400">Descuento</span>
+              <span class="text-red-500">-{{ formatCurrency(quote.discount) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-gray-400">IVA 16%</span>
+              <span>{{ formatCurrency(quote.tax) }}</span>
+            </div>
+            <div class="flex justify-between font-bold text-base border-t border-gray-200 dark:border-gray-600 pt-1 mt-1">
+              <span>Total</span>
+              <span>{{ formatCurrency(quote.total) }}</span>
+            </div>
+          </div>
+
+          <!-- Converted to sale link -->
+          <div v-if="quote.status === 'CONVERTED' && quote.saleOrderId" class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <RouterLink
+              :to="`/sales/${quote.saleOrderId}`"
+              class="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 text-sm font-medium"
+            >
+              <ArrowRightCircleIcon class="w-4 h-4" />
+              Ver Venta Generada
+            </RouterLink>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items table -->
+      <div class="card p-0">
+        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="font-semibold text-gray-900 dark:text-white">Partidas</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800/50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">#</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Producto</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cantidad</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Precio U.</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Desc.</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subtotal</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notas</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+              <tr v-for="(item, idx) in quote.items" :key="item.id" class="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                <td class="px-4 py-3 text-gray-400">{{ idx + 1 }}</td>
+                <td class="px-4 py-3">
+                  <div class="font-medium text-gray-900 dark:text-white">{{ item.product?.name }}</div>
+                  <div class="text-xs text-gray-400">{{ item.product?.code }}</div>
+                </td>
+                <td class="px-4 py-3 text-right">{{ item.quantity }}</td>
+                <td class="px-4 py-3 text-right">{{ formatCurrency(item.unitPrice) }}</td>
+                <td class="px-4 py-3 text-right">
+                  <span v-if="item.discount">{{ item.discount }}%</span>
+                  <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                </td>
+                <td class="px-4 py-3 text-right font-semibold">{{ formatCurrency(item.subtotal) }}</td>
+                <td class="px-4 py-3 text-gray-500 text-xs">{{ item.notes || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Status timeline -->
+      <div class="card">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Flujo de Estado</h3>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div v-for="(step, i) in statusFlow" :key="step.key" class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
+              <div
+                :class="[
+                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold',
+                  isStepReached(step.key)
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                ]"
+              >
+                {{ i + 1 }}
+              </div>
+              <span :class="['text-sm', isStepReached(step.key) ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500']">
+                {{ step.label }}
+              </span>
+            </div>
+            <div v-if="i < statusFlow.length - 1" class="w-6 h-px bg-gray-200 dark:bg-gray-700"></div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Not found -->
+    <div v-else-if="!loading" class="card text-center py-10 text-gray-500">
+      Cotización no encontrada.
+    </div>
+
+    <!-- Reject Modal -->
+    <AppModal v-model="showRejectModal" title="Rechazar Cotización" size="sm">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400">Indica el motivo del rechazo para informar al equipo.</p>
+        <div>
+          <label class="label">Motivo</label>
+          <textarea v-model="rejectReason" class="input min-h-[80px]" placeholder="Precio fuera de presupuesto, cambio de requerimientos..."></textarea>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showRejectModal = false">Cancelar</button>
+        <button class="btn-danger" :disabled="actionLoading" @click="doReject">
+          {{ actionLoading ? 'Rechazando...' : 'Rechazar' }}
+        </button>
+      </template>
+    </AppModal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  PaperAirplaneIcon,
+  ArrowRightCircleIcon,
+  ArrowDownTrayIcon,
+} from '@heroicons/vue/24/outline'
+import { quotesApi } from '@/services/api'
+import AppModal from '@/components/ui/AppModal.vue'
+import { useToast } from 'vue-toastification'
+import { useQuotePdf } from '@/composables/useQuotePdf'
+
+const route  = useRoute()
+const router = useRouter()
+const toast  = useToast()
+const { generate: _generatePdf } = useQuotePdf()
+async function generatePdf(q: any) {
+  try { await _generatePdf(q) }
+  catch { toast.error('Error al generar PDF') }
+}
+
+const loading      = ref(true)
+const actionLoading = ref(false)
+const quote        = ref<any>(null)
+const showRejectModal = ref(false)
+const rejectReason = ref('')
+
+const id = computed(() => route.params.id as string)
+
+async function load() {
+  loading.value = true
+  try {
+    const res = await quotesApi.get(id.value)
+    quote.value = res.data
+  } catch {
+    toast.error('Error al cargar la cotización')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+
+async function doSend() {
+  if (actionLoading.value) return
+  actionLoading.value = true
+  try {
+    await quotesApi.send(id.value)
+    toast.success('Cotización enviada')
+    await load()
+  } catch (e: any) {
+    toast.error(e?.response?.data?.message ?? 'Error al enviar')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function doApprove() {
+  if (actionLoading.value) return
+  actionLoading.value = true
+  try {
+    await quotesApi.approve(id.value)
+    toast.success('Cotización aprobada')
+    await load()
+  } catch (e: any) {
+    toast.error(e?.response?.data?.message ?? 'Error al aprobar')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function doReject() {
+  if (actionLoading.value) return
+  actionLoading.value = true
+  try {
+    await quotesApi.reject(id.value, rejectReason.value)
+    toast.success('Cotización rechazada')
+    showRejectModal.value = false
+    rejectReason.value = ''
+    await load()
+  } catch (e: any) {
+    toast.error(e?.response?.data?.message ?? 'Error al rechazar')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function doConvert() {
+  if (actionLoading.value) return
+  actionLoading.value = true
+  try {
+    const res = await quotesApi.convert(id.value)
+    toast.success('Cotización convertida a venta')
+    if (res.data?.saleOrderId) {
+      router.push(`/sales/${res.data.saleOrderId}`)
+    } else {
+      await load()
+    }
+  } catch (e: any) {
+    toast.error(e?.response?.data?.message ?? 'Error al convertir')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const STATUS_FLOW_ORDER = ['DRAFT', 'SENT', 'APPROVED', 'CONVERTED']
+
+const statusFlow = [
+  { key: 'DRAFT',     label: 'Borrador' },
+  { key: 'SENT',      label: 'Enviada' },
+  { key: 'APPROVED',  label: 'Aprobada' },
+  { key: 'CONVERTED', label: 'Convertida' },
+]
+
+function isStepReached(key: string) {
+  if (!quote.value) return false
+  const current = quote.value.status
+  if (['REJECTED', 'EXPIRED'].includes(current)) {
+    // Show up to where it was before rejection
+    const idx = STATUS_FLOW_ORDER.indexOf(key)
+    const curIdx = STATUS_FLOW_ORDER.indexOf('SENT')
+    return idx <= curIdx
+  }
+  const idx = STATUS_FLOW_ORDER.indexOf(key)
+  const curIdx = STATUS_FLOW_ORDER.indexOf(current)
+  return idx <= curIdx
+}
+
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    DRAFT: 'Borrador', SENT: 'Enviada', APPROVED: 'Aprobada',
+    REJECTED: 'Rechazada', EXPIRED: 'Vencida', CONVERTED: 'Convertida',
+  }
+  return map[s] ?? s
+}
+
+function statusBadge(s: string) {
+  const map: Record<string, string> = {
+    DRAFT:     'badge-gray',
+    SENT:      'badge-blue',
+    APPROVED:  'badge-green',
+    REJECTED:  'badge-red',
+    EXPIRED:   'badge-yellow',
+    CONVERTED: 'badge-purple',
+  }
+  return map[s] ?? 'badge-gray'
+}
+
+function formatCurrency(v: any) {
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(v) || 0)
+}
+
+function formatDate(d: string) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function isExpiringSoon(d: string) {
+  if (!d) return false
+  const diff = new Date(d).getTime() - Date.now()
+  return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000
+}
+</script>

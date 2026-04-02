@@ -153,6 +153,18 @@ const router = createRouter({
           meta: { title: 'Clientes', section: 'operaciones' },
         },
         {
+          path: 'quotes',
+          name: 'quotes',
+          component: () => import('@/views/quotes/QuotesView.vue'),
+          meta: { title: 'Cotizaciones', section: 'operaciones' },
+        },
+        {
+          path: 'quotes/:id',
+          name: 'quote-detail',
+          component: () => import('@/views/quotes/QuoteDetailView.vue'),
+          meta: { title: 'Detalle de Cotización', section: 'operaciones' },
+        },
+        {
           path: 'production',
           name: 'production',
           component: () => import('@/views/production/ProductionView.vue'),

@@ -24,7 +24,7 @@ RUN apt-get update -y && apt-get install -y openssl dumb-init && rm -rf /var/lib
 COPY backend/package*.json ./
 COPY backend/prisma ./prisma/
 
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm ci --legacy-peer-deps && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -38,4 +38,4 @@ EXPOSE 3000
 USER node
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/src/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
