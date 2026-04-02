@@ -38,4 +38,4 @@ EXPOSE 3000
 USER node
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
+CMD ["sh", "-c", "node dist/src/main"]
