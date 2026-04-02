@@ -365,7 +365,10 @@ async function doSendWA() {
     const base64 = await _generatePdfBase64(quote.value)
     const res = await quotesApi.uploadPdf(quote.value.id, base64)
     message = message + `\n\n📄 *PDF:* ${res.data.url}`
-  } catch { /* non-fatal */ }
+  } catch (err: any) {
+    console.error('[WA PDF upload error]', err)
+    toast.warning(`No se pudo generar el link del PDF: ${err?.response?.data?.message ?? err?.message ?? 'error desconocido'}`)
+  }
   sendWhatsApp(waForm.phone, message)
   showWAModal.value = false
 }
