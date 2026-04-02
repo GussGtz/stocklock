@@ -33,7 +33,7 @@ export function buildQuoteMessage(quote: any): string {
 
   return `Hola ${quote.customer?.name ?? ''},
 
-Le comparto nuestra *Cotización ${quote.folio}* 📋
+Le compartimos la *Cotización ${quote.folio}* de CALUTEC.
 
 *Artículos:*
 ${items}
@@ -41,8 +41,8 @@ ${items}
 *Subtotal:* ${fmt(quote.subtotal)}
 *IVA 16%:* ${fmt(quote.tax)}
 *Total:* ${fmt(quote.total)}
+${quote.validUntil ? `\nVálida hasta: ${new Date(quote.validUntil).toLocaleDateString('es-MX')}` : ''}
 
-${quote.validUntil ? `Válida hasta: ${new Date(quote.validUntil).toLocaleDateString('es-MX')}\n` : ''}Quedamos a sus órdenes para cualquier aclaración.
-
-*CALUTEC* — www.calutec.com`
+Quedamos a sus órdenes para cualquier aclaración.
+CALUTEC — www.calutec.com`
 }

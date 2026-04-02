@@ -408,7 +408,7 @@ async function submitWA() {
     try {
       const base64 = await generatePdfBase64(waQuote.value)
       const res = await quotesApi.uploadPdf(waQuote.value.id, base64)
-      message = message + `\n\n📄 *PDF:* ${res.data.url}`
+      message = message + `\n\nDescargar PDF: ${res.data.url}`
     } catch (err: any) {
       console.error('[WA PDF upload error]', err)
       toast.warning(`No se pudo generar el link del PDF: ${err?.response?.data?.message ?? err?.message ?? 'error desconocido'}`)
