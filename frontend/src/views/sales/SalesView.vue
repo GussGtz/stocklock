@@ -202,14 +202,12 @@
               <div class="grid grid-cols-12 gap-2 items-center">
                 <!-- Product -->
                 <div class="col-span-4">
-                  <select
+                  <ProductCombobox
                     v-model="item.productId"
-                    :class="['input text-sm', !item.productId && formErrors._summary ? 'border-red-400' : '']"
-                    @change="onProductSelect(item)"
-                  >
-                    <option value="">— Selecciona producto —</option>
-                    <option v-for="p in products" :key="p.id" :value="p.id">{{ p.code }} — {{ p.name }}</option>
-                  </select>
+                    :products="products"
+                    :error-class="!item.productId && formErrors._summary ? 'border-red-400' : ''"
+                    @select="p => p && onProductSelect(item, p)"
+                  />
                 </div>
                 <!-- Qty -->
                 <div class="col-span-1">
@@ -309,6 +307,7 @@ import { PlusIcon, EyeIcon, CheckCircleIcon, TruckIcon, XCircleIcon, XMarkIcon }
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import ProductCombobox from '@/components/ui/ProductCombobox.vue'
 
 const toast = useToast()
 const loading = ref(false)
@@ -397,19 +396,12 @@ function onSectorChange() {
   createForm.aluminumTypeId = ''
 }
 
-function onProductSelect(item) {
-  const p = products.value.find(p => p.id === item.productId)
-  if (p) {
-    item.unitPrice = p.salePrice || 0
-    item.sectorName = p.sector?.name || ''
-    item.typeName = p.aluminumType?.name || ''
-    // If no global sector set, suggest from product
-    if (!createForm.sectorId && p.sectorId) {
-      createForm.sectorId = p.sectorId
-    }
-  } else {
-    item.sectorName = ''
-    item.typeName = ''
+function onProductSelect(item, p) {
+  item.unitPrice  = p.salePrice || 0
+  item.sectorName = p.sector?.name || ''
+  item.typeName   = p.aluminumType?.name || ''
+  if (!createForm.sectorId && p.sectorId) {
+    createForm.sectorId = p.sectorId
   }
 }
 

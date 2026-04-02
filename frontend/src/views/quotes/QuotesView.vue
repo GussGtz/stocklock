@@ -122,10 +122,11 @@
             <div v-for="(item, idx) in form.items" :key="idx"
               class="grid grid-cols-12 gap-2 items-center bg-[#F8FAFC] dark:bg-slate-800/50 rounded-lg p-2 border border-transparent">
               <div class="col-span-4">
-                <select v-model="item.productId" class="input text-sm" @change="onProductSelect(item)">
-                  <option value="">— Producto —</option>
-                  <option v-for="p in products" :key="p.id" :value="p.id">{{ p.code }} — {{ p.name }}</option>
-                </select>
+                <ProductCombobox
+                  v-model="item.productId"
+                  :products="products"
+                  @select="p => p && onProductSelect(item, p)"
+                />
               </div>
               <div class="col-span-2">
                 <input v-model.number="item.quantity" type="number" min="0.01" step="0.01" class="input text-sm text-center" placeholder="1" />
@@ -191,6 +192,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import ProductCombobox from '@/components/ui/ProductCombobox.vue'
 import { useQuotePdf } from '@/composables/useQuotePdf'
 
 const { generate: generatePdf } = useQuotePdf()
@@ -253,9 +255,8 @@ function isExpiringSoon(d) {
   return diff >= 0 && diff <= 3
 }
 
-function onProductSelect(item) {
-  const p = products.value.find(p => p.id === item.productId)
-  if (p) item.unitPrice = Number(p.salePrice) || 0
+function onProductSelect(item: any, p: any) {
+  item.unitPrice = Number(p.salePrice) || 0
 }
 function addItem()       { form.items.push(defaultItem()) }
 function removeItem(idx) { if (form.items.length > 1) form.items.splice(idx, 1) }
