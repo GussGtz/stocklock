@@ -128,8 +128,7 @@ function tc(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export function useQuotePdf() {
-  async function generate(quote: any) {
+async function buildDoc(quote: any): Promise<jsPDF> {
     // Pre-load company logo
     const logoImg = await loadImage(companyLogoUrl as string)
 
@@ -471,8 +470,19 @@ export function useQuotePdf() {
       drawFooter(p, totalPages)
     }
 
+    return doc
+}
+
+export function useQuotePdf() {
+  async function generate(quote: any) {
+    const doc = await buildDoc(quote)
     doc.save(`${quote.folio || 'cotizacion'}.pdf`)
   }
 
-  return { generate }
+  async function generateBase64(quote: any): Promise<string> {
+    const doc = await buildDoc(quote)
+    return (doc.output('datauristring') as string).split(',')[1]
+  }
+
+  return { generate, generateBase64 }
 }

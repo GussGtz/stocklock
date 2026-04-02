@@ -15,4 +15,8 @@ export class SendQuoteEmailDto {
   @IsOptional()
   @IsString()
   message?: string;
+
+  @IsOptional()
+  @IsString()
+  pdfBase64?: string;
 }

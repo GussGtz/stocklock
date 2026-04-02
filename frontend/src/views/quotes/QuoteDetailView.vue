@@ -227,7 +227,7 @@
       <div class="space-y-4">
         <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
           <ChatBubbleLeftIcon class="w-4 h-4 mt-0.5 shrink-0" />
-          <span>Se abrirá WhatsApp con el mensaje listo. Solo haz clic en <strong>Enviar</strong>.</span>
+          <span>El PDF se descargará automáticamente. Adjúntalo en WhatsApp y haz clic en <strong>Enviar</strong>.</span>
         </div>
         <div>
           <label class="label">Teléfono <span class="text-red-500">*</span></label>
@@ -317,7 +317,7 @@ import { useQuotePdf } from '@/composables/useQuotePdf'
 const route  = useRoute()
 const router = useRouter()
 const toast  = useToast()
-const { generate: _generatePdf } = useQuotePdf()
+const { generate: _generatePdf, generateBase64: _generatePdfBase64 } = useQuotePdf()
 async function generatePdf(q: any) {
   try { await _generatePdf(q) }
   catch { toast.error('Error al generar PDF') }
@@ -358,8 +358,9 @@ function openWA() {
   showWAModal.value = true
 }
 
-function doSendWA() {
+async function doSendWA() {
   if (!waForm.phone) { toast.error('Ingresa el número de WhatsApp'); return }
+  try { await _generatePdf(quote.value) } catch { /* non-fatal */ }
   sendWhatsApp(waForm.phone, waForm.message)
   showWAModal.value = false
 }
@@ -380,13 +381,15 @@ async function doSendEmail() {
   if (actionLoading.value) return
   actionLoading.value = true
   try {
+    const pdfBase64 = await _generatePdfBase64(quote.value).catch(() => undefined)
     await quotesApi.sendEmail(id.value, {
-      to:      emailForm.to,
-      cc:      emailForm.cc     || undefined,
-      subject: emailForm.subject || undefined,
-      message: emailForm.message || undefined,
+      to:       emailForm.to,
+      cc:       emailForm.cc     || undefined,
+      subject:  emailForm.subject || undefined,
+      message:  emailForm.message || undefined,
+      pdfBase64,
     })
-    toast.success('Correo enviado correctamente')
+    toast.success('Correo enviado con PDF adjunto')
     showEmailModal.value = false
     await load()
   } catch (e: any) {

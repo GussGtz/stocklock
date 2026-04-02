@@ -298,6 +298,10 @@ export class QuotesService {
     const message = dto.message?.trim() ||
       `Estimado(a) ${quote.customer?.name ?? 'cliente'},\n\nAdjunto encontrará los detalles de nuestra cotización ${quote.folio}.\n\nQuedamos a sus órdenes para cualquier aclaración.`;
 
+    const attachments = dto.pdfBase64
+      ? [{ filename: `${quote.folio}.pdf`, content: Buffer.from(dto.pdfBase64, 'base64'), contentType: 'application/pdf' }]
+      : [];
+
     try {
       await transport.sendMail({
         from,
@@ -305,6 +309,7 @@ export class QuotesService {
         cc: dto.cc || undefined,
         subject,
         html: this.buildEmailHtml(quote, message),
+        attachments,
       });
       this.logger.log(`Quote email sent: ${quote.folio} → ${dto.to}`);
     } catch (err) {

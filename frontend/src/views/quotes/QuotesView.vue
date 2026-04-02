@@ -201,7 +201,7 @@
       <div class="space-y-4">
         <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
           <ChatBubbleLeftIcon class="w-4 h-4 mt-0.5 shrink-0" />
-          <span>Se abrirá WhatsApp con el mensaje listo. Solo haz clic en <strong>Enviar</strong>.</span>
+          <span>El PDF se descargará automáticamente. Adjúntalo en WhatsApp y haz clic en <strong>Enviar</strong>.</span>
         </div>
         <div>
           <label class="label">Teléfono <span class="text-red-500">*</span></label>
@@ -254,7 +254,7 @@ import AppModal from '@/components/ui/AppModal.vue'
 import ProductCombobox from '@/components/ui/ProductCombobox.vue'
 import { useQuotePdf } from '@/composables/useQuotePdf'
 
-const { generate: generatePdf } = useQuotePdf()
+const { generate: generatePdf, generateBase64: generatePdfBase64 } = useQuotePdf()
 const toast      = useToast()
 const loading    = ref(false)
 const saving     = ref(false)
@@ -266,6 +266,7 @@ const showReject = ref(false)
 const showEmail  = ref(false)
 const showWA     = ref(false)
 const waForm     = reactive({ phone: '', message: '' })
+const waQuote    = ref<any>(null)
 const rejectingItem = ref<any>(null)
 const emailingItem  = ref<any>(null)
 const rejectReason  = ref('')
@@ -374,31 +375,37 @@ async function submitEmail() {
   if (!emailForm.to) { toast.warning('Ingresa el correo del destinatario'); return }
   saving.value = true
   try {
+    const fullQuote = (await quotesApi.get(emailingItem.value.id)).data
+    const pdfBase64 = await generatePdfBase64(fullQuote).catch(() => undefined)
     await quotesApi.sendEmail(emailingItem.value.id, {
-      to:      emailForm.to,
-      cc:      emailForm.cc  || undefined,
-      subject: emailForm.subject || undefined,
-      message: emailForm.message || undefined,
+      to:       emailForm.to,
+      cc:       emailForm.cc  || undefined,
+      subject:  emailForm.subject || undefined,
+      message:  emailForm.message || undefined,
+      pdfBase64,
     })
-    toast.success('Correo enviado correctamente')
+    toast.success('Correo enviado con PDF adjunto')
     showEmail.value = false
     fetchQuotes()
   } catch (err: any) { toast.error(err?.response?.data?.message || 'Error al enviar el correo') }
   finally { saving.value = false }
 }
 async function openWhatsApp(row: any) {
-  // Fetch full quote to get items for the message
   try {
     const res = await quotesApi.get(row.id)
     const q = res.data
+    waQuote.value  = q
     waForm.phone   = q.customer?.phone ?? ''
     waForm.message = buildQuoteMessage(q)
     showWA.value = true
   } catch { toast.error('Error al cargar cotización') }
 }
 
-function submitWA() {
+async function submitWA() {
   if (!waForm.phone) { toast.warning('Ingresa el número de WhatsApp'); return }
+  if (waQuote.value) {
+    try { await generatePdf(waQuote.value) } catch { /* non-fatal */ }
+  }
   sendWhatsApp(waForm.phone, waForm.message)
   showWA.value = false
 }
