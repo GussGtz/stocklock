@@ -22,7 +22,7 @@ export interface FindAllQuotesQuery {
 }
 
 const QUOTE_INCLUDE = {
-  customer: { select: { id: true, name: true, code: true, email: true } },
+  customer: { select: { id: true, name: true, code: true, email: true, phone: true } },
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
   items: {
     include: {

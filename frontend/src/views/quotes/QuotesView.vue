@@ -67,6 +67,9 @@
             <button v-if="row.status === 'DRAFT'" class="btn-ghost text-xs px-2 py-1 text-sky-600" title="Enviar por correo" @click="openEmail(row)">
               <EnvelopeIcon class="w-3.5 h-3.5" />
             </button>
+            <button v-if="row.status === 'DRAFT'" class="btn-ghost text-xs px-2 py-1 text-emerald-600" title="Enviar por WhatsApp" @click="openWhatsApp(row)">
+              <ChatBubbleLeftIcon class="w-3.5 h-3.5" />
+            </button>
             <button v-if="row.status === 'SENT'" class="btn-ghost text-xs px-2 py-1 text-emerald-600" title="Aprobar" @click="doApprove(row)">
               <CheckCircleIcon class="w-3.5 h-3.5" />
             </button>
@@ -193,6 +196,32 @@
       </template>
     </AppModal>
 
+    <!-- WHATSAPP MODAL -->
+    <AppModal v-model="showWA" title="Enviar por WhatsApp" size="md">
+      <div class="space-y-4">
+        <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+          <ChatBubbleLeftIcon class="w-4 h-4 mt-0.5 shrink-0" />
+          <span>Se abrirá WhatsApp con el mensaje listo. Solo haz clic en <strong>Enviar</strong>.</span>
+        </div>
+        <div>
+          <label class="label">Teléfono <span class="text-red-500">*</span></label>
+          <input v-model="waForm.phone" type="tel" class="input" placeholder="9981234567 o +529981234567" />
+          <p class="text-xs text-slate-400 mt-1">Incluye código de país o deja los 10 dígitos (MX se agrega automáticamente)</p>
+        </div>
+        <div>
+          <label class="label">Mensaje</label>
+          <textarea v-model="waForm.message" rows="8" class="input font-mono text-xs leading-relaxed"></textarea>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showWA = false">Cancelar</button>
+        <button class="btn-primary bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2" @click="submitWA">
+          <ChatBubbleLeftIcon class="w-4 h-4" />
+          Abrir WhatsApp
+        </button>
+      </template>
+    </AppModal>
+
     <!-- REJECT MODAL -->
     <AppModal v-model="showReject" title="Rechazar Cotización" size="sm">
       <div class="space-y-3">
@@ -217,8 +246,9 @@ import { useToast } from 'vue-toastification'
 import { quotesApi, customersApi, productsApi } from '@/services/api'
 import {
   PlusIcon, EyeIcon, CheckCircleIcon, XCircleIcon, XMarkIcon,
-  EnvelopeIcon, ArrowRightCircleIcon, ArrowDownTrayIcon,
+  EnvelopeIcon, ArrowRightCircleIcon, ArrowDownTrayIcon, ChatBubbleLeftIcon,
 } from '@heroicons/vue/24/outline'
+import { sendWhatsApp, buildQuoteMessage } from '@/composables/useWhatsApp'
 import DataTable from '@/components/ui/DataTable.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import ProductCombobox from '@/components/ui/ProductCombobox.vue'
@@ -234,6 +264,8 @@ const products   = ref([])
 const showCreate = ref(false)
 const showReject = ref(false)
 const showEmail  = ref(false)
+const showWA     = ref(false)
+const waForm     = reactive({ phone: '', message: '' })
 const rejectingItem = ref<any>(null)
 const emailingItem  = ref<any>(null)
 const rejectReason  = ref('')
@@ -354,6 +386,23 @@ async function submitEmail() {
   } catch (err: any) { toast.error(err?.response?.data?.message || 'Error al enviar el correo') }
   finally { saving.value = false }
 }
+async function openWhatsApp(row: any) {
+  // Fetch full quote to get items for the message
+  try {
+    const res = await quotesApi.get(row.id)
+    const q = res.data
+    waForm.phone   = q.customer?.phone ?? ''
+    waForm.message = buildQuoteMessage(q)
+    showWA.value = true
+  } catch { toast.error('Error al cargar cotización') }
+}
+
+function submitWA() {
+  if (!waForm.phone) { toast.warning('Ingresa el número de WhatsApp'); return }
+  sendWhatsApp(waForm.phone, waForm.message)
+  showWA.value = false
+}
+
 async function doApprove(row) {
   try { await quotesApi.approve(row.id); toast.success('Cotización aprobada'); fetchQuotes() }
   catch (err) { toast.error(err?.response?.data?.message || 'Error al aprobar') }

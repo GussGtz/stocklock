@@ -34,6 +34,15 @@
           Enviar por Correo
         </button>
         <button
+          v-if="quote.status === 'DRAFT'"
+          class="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"
+          :disabled="actionLoading"
+          @click="openWA"
+        >
+          <ChatBubbleLeftIcon class="w-4 h-4" />
+          Enviar por WhatsApp
+        </button>
+        <button
           v-if="quote.status === 'SENT'"
           class="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500"
           :disabled="actionLoading"
@@ -213,6 +222,32 @@
       Cotización no encontrada.
     </div>
 
+    <!-- WhatsApp Modal -->
+    <AppModal v-model="showWAModal" title="Enviar por WhatsApp" size="md">
+      <div class="space-y-4">
+        <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+          <ChatBubbleLeftIcon class="w-4 h-4 mt-0.5 shrink-0" />
+          <span>Se abrirá WhatsApp con el mensaje listo. Solo haz clic en <strong>Enviar</strong>.</span>
+        </div>
+        <div>
+          <label class="label">Teléfono <span class="text-red-500">*</span></label>
+          <input v-model="waForm.phone" type="tel" class="input" placeholder="9981234567 o +529981234567" />
+          <p class="text-xs text-slate-400 mt-1">10 dígitos MX o formato internacional</p>
+        </div>
+        <div>
+          <label class="label">Mensaje</label>
+          <textarea v-model="waForm.message" rows="8" class="input font-mono text-xs leading-relaxed"></textarea>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showWAModal = false">Cancelar</button>
+        <button class="btn-primary bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2" @click="doSendWA">
+          <ChatBubbleLeftIcon class="w-4 h-4" />
+          Abrir WhatsApp
+        </button>
+      </template>
+    </AppModal>
+
     <!-- Email Modal -->
     <AppModal v-model="showEmailModal" title="Enviar cotización por correo" size="md">
       <div class="space-y-4">
@@ -269,9 +304,11 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   EnvelopeIcon,
+  ChatBubbleLeftIcon,
   ArrowRightCircleIcon,
   ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline'
+import { sendWhatsApp, buildQuoteMessage } from '@/composables/useWhatsApp'
 import { quotesApi } from '@/services/api'
 import AppModal from '@/components/ui/AppModal.vue'
 import { useToast } from 'vue-toastification'
@@ -291,8 +328,10 @@ const actionLoading = ref(false)
 const quote         = ref<any>(null)
 const showRejectModal = ref(false)
 const showEmailModal  = ref(false)
+const showWAModal     = ref(false)
 const rejectReason = ref('')
 const emailForm = reactive({ to: '', cc: '', subject: '', message: '' })
+const waForm    = reactive({ phone: '', message: '' })
 
 const id = computed(() => route.params.id as string)
 
@@ -311,6 +350,19 @@ async function load() {
 onMounted(load)
 
 // ── Actions ──────────────────────────────────────────────────────────────────
+
+function openWA() {
+  const q = quote.value
+  waForm.phone   = q.customer?.phone ?? ''
+  waForm.message = buildQuoteMessage(q)
+  showWAModal.value = true
+}
+
+function doSendWA() {
+  if (!waForm.phone) { toast.error('Ingresa el número de WhatsApp'); return }
+  sendWhatsApp(waForm.phone, waForm.message)
+  showWAModal.value = false
+}
 
 function openEmail() {
   const q = quote.value
